@@ -1,77 +1,79 @@
 # Dashboard Tape Reading
 
-Dashboard local en Python para revisar el flujo diario de opciones. Lee los CSV que deja un pipeline de captura externo (con el esquema del [contrato de datos](docs/contrato-datos.md)), reconstruye las operaciones a partir de los trades y las muestra en tres pestañas:
+A local Python dashboard to review the daily options flow. It reads the CSV files left by an external capture pipeline (with the schema described in the [data contract](docs/contrato-datos.md)), rebuilds the operations from the individual trades and shows them in three tabs:
 
-1. **Operaciones**: listado de las operaciones detectadas, con gráficos de neto direccional y de paredes por subyacente, y el GEX del SPY como contexto de mercado.
-2. **Patas incompletas**: operaciones multi-leg a las que les falta una pata, para completarlas a mano.
-3. **Posiciones**: posiciones reales vinculadas a la operación que imitan, con su historial y P&L.
+1. **Operations**: the detected operations, with net directional and wall charts per underlying, and the SPY GEX as market context.
+2. **Incomplete legs**: multi-leg operations missing a leg, to be completed by hand.
+3. **Positions**: real positions linked to the operation they mimic, with their history and P&L.
 
-El dashboard **solo lee** la carpeta de datos, nunca la modifica, y no envía órdenes.
+The dashboard **only reads** the data folder, never modifies it, and never sends orders.
 
-> **Estado:** fases 0 a 2 completadas: script de nivel 3 refactorizado con test de no regresión, capa de datos que lee, valida y reconstruye todas las capturas, y reglas de clasificación con ediciones manuales. La interfaz llega a partir de la Fase 3. El plan completo está en [docs/plan.md](docs/plan.md).
+> **Status:** phases 0 to 2 are done: the level-3 script was refactored under a byte-for-byte regression test, the data layer reads, validates and rebuilds every capture, and the classification rules and manual edits are in place. The user interface comes from phase 3 on. The full plan is in [docs/plan.md](docs/plan.md).
 
-## Ficheros de entrada
+## Input files
 
 ```
-carpeta de datos (solo lectura)
-  nivel1_candidatos_YYYYMMDD.csv   candidatos por cambio de open interest
-  nivel2_trades_YYYYMMDD.csv       Time & Sales de cada candidato
-  nivel3_operaciones_YYYYMMDD.csv  operaciones agrupadas por pipeline/nivel3_agrupar.py
+data folder (read-only)
+  nivel1_candidatos_YYYYMMDD.csv   candidates from the day's open-interest changes
+  nivel2_trades_YYYYMMDD.csv       Time & Sales of each candidate
+  nivel3_operaciones_YYYYMMDD.csv  operations grouped by pipeline/nivel3_agrupar.py
           │
           ▼
-Dashboard: reconstruye las operaciones desde el nivel 2 con el mismo código del
-nivel 3, aplica las ediciones manuales y clasifica.
+Dashboard: rebuilds the operations from level 2 with the same level-3 code,
+applies the manual edits and classifies them.
 ```
 
-Cómo se obtienen esos ficheros queda fuera de este repositorio. Las reglas de negocio (umbrales, agresividad, agrupación y clasificación) están en [docs/reglas-negocio.md](docs/reglas-negocio.md).
+How those files are obtained is outside the scope of this repository. The business rules (thresholds, aggressiveness, grouping and classification) are in [docs/reglas-negocio.md](docs/reglas-negocio.md).
 
-## Estructura del repositorio
+File names, CSV column names and the level-3 script (`pipeline/nivel3_agrupar.py`) are in Spanish, as the pipeline produces and runs them. Some code comments are still in Spanish as well.
+
+## Repository layout
 
 ```
-pipeline/nivel3_agrupar.py   script de nivel 3: lo ejecuta el pipeline y lo importa el dashboard
-src/tape_dashboard/          código del dashboard
-  config.py                  rutas configurables
-  data/                      capa de datos: esquemas, carga, reconstrucción, validación
-  rules/                     lado de cada pata, tipos de operación y clasificación
-  edits/                     ediciones manuales: almacén SQLite y aplicación sobre los datos
-  report.py                  informe de los datos por consola
+pipeline/nivel3_agrupar.py   level-3 script: run by the pipeline and imported by the dashboard
+src/tape_dashboard/          dashboard code
+  config.py                  configurable paths
+  data/                      data layer: schemas, loading, reconstruction, validation
+  rules/                     leg sides, operation types and classification
+  edits/                     manual edits: SQLite store and how they are applied
+  report.py                  command-line data report
 tests/                       tests (pytest)
-tests/legacy/                copia congelada del script anterior, oráculo de no regresión
-docs/                        reglas de negocio, decisiones y guías
-specification.md             especificación funcional (en inglés)
+tests/legacy/                frozen copy of the previous script, the regression oracle
+docs/                        business rules, decisions and guides
+specification.md             functional specification
 ```
 
-## Instalación y tests
+## Installation and tests
 
-Requiere Python 3.11 o superior.
+Requires Python 3.11 or later.
 
 ```bash
 python -m venv .venv
-.venv/Scripts/activate          # Windows; en Linux/macOS: source .venv/bin/activate
+.venv/Scripts/activate          # Windows; on Linux/macOS: source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
 ```
 
-Los tests que necesitan datos reales los buscan en la carpeta de datos configurada. Si no la encuentran, se omiten. El resto (con datos sintéticos generados por los propios tests) se ejecuta siempre.
+Tests that need real data look for it in the configured data folder and are skipped if it is not there. The rest, which use synthetic data generated by the tests themselves, always run.
 
-## Uso
+## Usage
 
 ```bash
-python -m tape_dashboard.report     # inventario, validación, reparto por destino, ediciones huérfanas y avisos
+python -m tape_dashboard.report     # inventory, validation, breakdown by destination, orphan edits and warnings
 ```
 
-La carpeta de datos y la de datos del usuario se configuran con las variables de entorno `TAPE_DATA_DIR` y `TAPE_USER_DATA_DIR`, o con un `config.toml` (plantilla en [`config.example.toml`](config.example.toml)).
+The data folder and the user-data folder are set with the `TAPE_DATA_DIR` and `TAPE_USER_DATA_DIR` environment variables, or with a `config.toml` file (template in [`config.example.toml`](config.example.toml)).
 
-## Datos
+## Data
 
-El repositorio no contiene datos: ningún CSV, ni ediciones manuales, ni posiciones, ni credenciales (ver `.gitignore`; un test lo comprueba). El formato de cada fichero de entrada está en el [contrato de datos](docs/contrato-datos.md).
+The repository contains no data: no CSV files, manual edits, positions or credentials (see `.gitignore`; a test checks it). The format of each input file is in the [data contract](docs/contrato-datos.md).
 
-## Documentación
+## Documentation
 
-- [Contrato de datos](docs/contrato-datos.md)
-- [Calidad de los datos](docs/calidad-datos.md)
-- [Arquitectura](docs/arquitectura.md)
-- [Reglas de negocio](docs/reglas-negocio.md)
-- [Script de nivel 3 y su despliegue](docs/level3-script.md)
-- [Registro de decisiones](docs/decisiones/README.md)
-- [Plan por fases](docs/plan.md)
+- [Data contract](docs/contrato-datos.md)
+- [Data quality](docs/calidad-datos.md)
+- [Architecture](docs/arquitectura.md)
+- [Business rules](docs/reglas-negocio.md)
+- [Level-3 script and its deployment](docs/level3-script.md)
+- [Decision log](docs/decisiones/README.md)
+- [Phased plan](docs/plan.md)

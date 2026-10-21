@@ -1,10 +1,10 @@
-# Copia este fichero como config.toml (no se versiona) para cambiar las rutas.
-# Las variables de entorno TAPE_DATA_DIR y TAPE_USER_DATA_DIR tienen prioridad.
-# Las rutas relativas se resuelven respecto a la raíz del repositorio.
+# Copy this file as config.toml (not under version control) to change the paths.
+# The TAPE_DATA_DIR and TAPE_USER_DATA_DIR environment variables take precedence.
+# Relative paths are resolved from the repository root.
 
 [paths]
-# Carpeta donde el pipeline de captura deja los CSV. El dashboard solo la lee.
+# Folder where the capture pipeline leaves the CSV files. The dashboard only reads it.
 data_dir = "../tape_data"
 
-# Ediciones manuales y posiciones del usuario. No se versiona.
+# The user's manual edits and positions. Not under version control.
 user_data_dir = "user_data"

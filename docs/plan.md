@@ -1,55 +1,55 @@
-# Plan por fases
+# Phased plan
 
-Cada fase termina con los tests pasando, la documentación al día y un commit. Las decisiones que se toman por el camino van al [registro de decisiones](decisiones/README.md).
+Each phase ends with the tests passing, the documentation up to date and a commit. Decisions taken along the way go to the [decision log](decisiones/README.md).
 
-| Fase | Contenido | Estado |
+| Phase | Content | Status |
 |---|---|---|
-| 0 | Andamiaje y refactor de `nivel3_agrupar.py` con test de no regresión | **hecha** |
-| 1 | Capa de datos: esquemas, normalización y reconstrucción de operaciones | **hecha** |
-| 2 | Clasificación, catálogo de tipos de operación y ediciones manuales (lógica pura) | **hecha** |
-| 3 | Aplicación y pestaña 1: listado | pendiente |
-| 4 | Pestaña 1: gráficos de neto direccional y paredes | pendiente |
-| 5 | Pestaña 2: patas incompletas | pendiente |
-| 6 | Pestaña 3: posiciones | pendiente |
-| 7 | GEX del SPY (nuevo fichero de entrada y panel) | pendiente |
+| 0 | Scaffolding and refactor of `nivel3_agrupar.py` with a regression test | **done** |
+| 1 | Data layer: schemas, normalisation and operation reconstruction | **done** |
+| 2 | Classification, operation-type catalogue and manual edits (pure logic) | **done** |
+| 3 | Application and tab 1: list | pending |
+| 4 | Tab 1: net directional and walls charts | pending |
+| 5 | Tab 2: incomplete legs | pending |
+| 6 | Tab 3: positions | pending |
+| 7 | SPY GEX (new input file and panel) | pending |
 
-La Fase 2 va antes de la interfaz porque la necesitan el popup de dirección, los gráficos y la pestaña 2. Es además la lógica de negocio con más riesgo, y se prueba mejor sin interfaz.
+Phase 2 comes before the interface because the direction pop-up, the charts and tab 2 all need it. It is also the business logic with the most risk, and it is easier to test without a UI.
 
-## Fase 0: andamiaje y refactor con no regresión
+## Phase 0: scaffolding and regression-tested refactor
 
-- Repositorio: `.gitignore` (ningún dato versionado), `.gitattributes`, `pyproject.toml`, README y registro de decisiones.
-- `pipeline/nivel3_agrupar.py` refactorizado: cálculo por pata, ID de operación y umbral separado de la agrupación, con la salida intacta ([detalle](level3-script.md)).
-- Copia congelada de la versión anterior en `tests/legacy/` como oráculo.
+- Repository: `.gitignore` (no data under version control), `.gitattributes`, `pyproject.toml`, README and decision log.
+- `pipeline/nivel3_agrupar.py` refactored: per-leg calculation, operation ID and threshold separated from grouping, with the output unchanged ([details](level3-script.md)).
+- Frozen copy of the previous version in `tests/legacy/` as the oracle.
 
-**Terminada cuando:** la salida del script nuevo es idéntica byte a byte a la del congelado para cada día real con nivel 2 y para el escenario sintético en cada variante de esquema; coincide con los nivel 3 guardados que generó esa versión; y la carpeta de datos queda intacta. ✔
+**Done when:** the new script's output is byte-for-byte identical to the frozen copy's for every real day with level 2 and for the synthetic scenario in every schema variant; it matches the stored level-3 files produced by that version; and the data folder is left untouched. ✔
 
-## Fase 1: capa de datos y reconstrucción
+## Phase 1: data layer and reconstruction
 
-- Ruta de datos configurable (variable de entorno, fichero de configuración o `../tape_data` por defecto).
-- Esquema canónico de cada CSV, con alias y registro de las variantes conocidas. Un fichero al que le falten columnas obligatorias se reporta con su nombre y las columnas que faltan; un encabezado nuevo pero resoluble se carga con aviso.
-- Normalización de valores: tipos, fechas, booleanos y contrato reconstruido.
-- Reconstrucción por captura con las funciones del script, deduplicando por ID entre capturas.
-- Validación contra el nivel 3 guardado.
-- Informe por consola (`python -m tape_dashboard.report`).
-- Documentación: `contrato-datos.md`, `calidad-datos.md` y `arquitectura.md`.
+- Configurable data path (environment variable, configuration file, or `../tape_data` by default).
+- Canonical schema for each CSV, with aliases and a registry of the known variants. A file missing required columns is reported with its name and the missing columns; a new but resolvable header is loaded with a warning.
+- Value normalisation: types, dates, booleans and rebuilt contract.
+- Per-capture reconstruction with the script's functions, de-duplicating IDs across captures.
+- Validation against the stored level 3.
+- Command-line report (`python -m tape_dashboard.report`).
+- Documentation: data contract, data quality and architecture.
 
-**Terminada cuando:** el informe sobre los datos reales es correcto y pasan los tests de normalización por variante, encabezado inválido, deduplicación y unicidad de IDs. ✔
+**Done when:** the report on the real data is correct and the tests for per-variant normalisation, invalid headers, de-duplication and ID uniqueness pass. ✔
 
-## Fase 2: clasificación, catálogo y ediciones
+## Phase 2: classification, catalogue and edits
 
-- Destino único de cada operación según las reglas de la especificación, usando el detalle por pata.
-- Catálogo de tipos de operación (bull call, bear put, straddle…) que fija el lado de cada pata ([0011](decisiones/0011-pata-manual-tipo-de-operacion.md)).
-- Almacén local de ediciones (direcciones, patas manuales, tipos elegidos), con detección de huérfanas.
-- Marca de ratio de tamaños anómalo ([0012](decisiones/0012-marcar-ratios-anomalos.md)).
+- A single destination per operation, following the specification's rules and using per-leg detail.
+- Operation-type catalogue (bull call, bear put, straddle…) that sets each leg's side ([0011](decisiones/0011-pata-manual-tipo-de-operacion.md)).
+- Local store for manual edits (directions, manual legs, chosen types), with orphan detection.
+- Anomalous size ratio flag ([0012](decisiones/0012-marcar-ratios-anomalos.md)).
 
-**Terminada cuando:** hay tests de cada regla de la especificación, de cada tipo del catálogo, de los casos reales sin regla y de conservación del premium. ✔
+**Done when:** there are tests for every rule in the specification, every catalogue type, the real cases the rules did not cover, and premium conservation. ✔
 
-Incluye además el cambio del script para quitar las cancelaciones ([0015](decisiones/0015-quitar-cancelaciones.md)).
+It also includes the script change that drops cancellations ([0015](decisiones/0015-quitar-cancelaciones.md)).
 
-## Fases 3 a 7
+## Phases 3 to 7
 
-- **3**: aplicación con las tres pestañas; listado con orden y filtros, selector de rango por fecha de captura, popup de dirección, avisos (esquemas, huérfanas, script del pipeline desactualizado).
-- **4**: gráficos de neto direccional y de paredes.
-- **5**: pestaña 2, con selector de día, listado de incompletas por encima del umbral y formulario con tipo de operación.
-- **6**: posiciones, historial y P&L, con un modelo preparado para una futura importación de solo lectura desde tastytrade.
-- **7**: fichero del GEX del SPY y su panel.
+- **3**: application with the three tabs; list with sorting and filters, range selector by capture date, direction pop-up, warnings (schemas, orphan edits, outdated pipeline script).
+- **4**: net directional and walls charts.
+- **5**: tab 2, with a day selector, the list of incomplete operations above the threshold and a form with the operation type.
+- **6**: positions, history and P&L, with a model ready for a future read-only import from tastytrade.
+- **7**: SPY GEX file and its panel.
