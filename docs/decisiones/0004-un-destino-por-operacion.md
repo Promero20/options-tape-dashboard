@@ -9,7 +9,7 @@ Los gráficos de la pestaña 1 suman premium por strike o por expiración. Si un
 
 ## Decisión
 
-Cada operación va a uno solo de estos destinos: neto direccional, paredes, total de indeterminadas o total de descartadas. Las patas incompletas sin completar quedan pendientes en la pestaña 2. La tabla de reglas está en la [especificación](../../especificacion.md#reglas-de-clasificación).
+Cada operación va a uno solo de estos destinos: neto direccional, paredes, total de indeterminadas o total de descartadas. Las patas incompletas sin completar quedan pendientes en la pestaña 2. La tabla de reglas está en la [especificación](../../specification.md#classification-rules).
 
 ## Consecuencias
 

@@ -38,7 +38,7 @@ src/tape_dashboard/          código del dashboard
 tests/                       tests (pytest)
 tests/legacy/                copia congelada del script anterior, oráculo de no regresión
 docs/                        reglas de negocio, decisiones y guías
-especificacion.md            especificación funcional
+specification.md             especificación funcional (en inglés)
 ```
 
 ## Instalación y tests

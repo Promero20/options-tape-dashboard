@@ -1,6 +1,6 @@
 # Registro de decisiones
 
-Una entrada breve por cada decisión relevante: qué se decidió, por qué y qué alternativas se descartaron. Las cuatro primeras vienen de la [especificación](../../especificacion.md); el resto se tomaron al contrastarla con los datos reales.
+Una entrada breve por cada decisión relevante: qué se decidió, por qué y qué alternativas se descartaron. Las cuatro primeras vienen de la [especificación](../../specification.md); el resto se tomaron al contrastarla con los datos reales.
 
 | # | Decisión | Estado |
 |---|---|---|
