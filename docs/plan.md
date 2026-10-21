@@ -48,7 +48,7 @@ It also includes the script change that drops cancellations ([0015](decisions/00
 
 ## Phases 3 to 7
 
-- **3**: application with the three tabs; list with sorting and filters, range selector by capture date, direction pop-up, warnings (schemas, orphan edits, outdated pipeline script).
+- **3**: application with the three tabs, in Dash, local only and with callbacks organised per tab ([0023](decisions/0023-ui-stack.md)); list with sorting and filters, range selector by capture date, direction pop-up, warnings (schemas, orphan edits, outdated pipeline script).
 - **4**: net directional and walls charts.
 - **5**: tab 2, with a day selector, the list of incomplete operations above the threshold and a form with the operation type.
 - **6**: positions, history and P&L, with a model ready for a future read-only import from tastytrade.
