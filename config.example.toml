@@ -1,0 +1,10 @@
+# Copia este fichero como config.toml (no se versiona) para cambiar las rutas.
+# Las variables de entorno TAPE_DATA_DIR y TAPE_USER_DATA_DIR tienen prioridad.
+# Las rutas relativas se resuelven respecto a la raíz del repositorio.
+
+[paths]
+# Carpeta donde el pipeline de captura deja los CSV. El dashboard solo la lee.
+data_dir = "../tape_data"
+
+# Ediciones manuales y posiciones del usuario. No se versiona.
+user_data_dir = "user_data"

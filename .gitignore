@@ -1,0 +1,36 @@
+# --- Datos: nunca se versionan ---
+# Ningún CSV, ni real ni sintético: los tests generan los suyos en un
+# directorio temporal.
+*.csv
+*_raw_*.json
+*.sqlite
+*.sqlite3
+*.db
+# Ediciones manuales, posiciones y cualquier otro dato del usuario
+user_data/
+# Configuración local (rutas); la plantilla es config.example.toml
+config.toml
+# Credenciales (futura integración de solo lectura con tastytrade)
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Editores y sistema ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

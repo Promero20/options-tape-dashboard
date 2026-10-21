@@ -1,0 +1,7 @@
+# Finales de línea LF en el repositorio y en la copia de trabajo, también en
+# Windows: el script de pipeline/ también se ejecuta en Linux.
+* text=auto eol=lf
+
+# La copia congelada del script es el oráculo del test de no regresión y se
+# verifica por SHA-256: git no debe tocar ni un byte.
+tests/legacy/** -text
