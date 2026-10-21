@@ -20,4 +20,4 @@ En muchas multi-legs no se puede saber de la agresividad qué pata se compró: a
 
 ## Consecuencias
 
-Las reglas y el catálogo están en [reglas de negocio](../reglas-negocio.md#correcciones-manuales).
+Las reglas y el catálogo están en [reglas de negocio](../business-rules.md#manual-corrections).

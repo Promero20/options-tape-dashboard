@@ -1,69 +1,69 @@
-# Script de nivel 3 y su despliegue
+# The level-3 script and its deployment
 
-`pipeline/nivel3_agrupar.py` es la **copia canónica** del script que agrupa los trades del nivel 2 en operaciones:
+`pipeline/nivel3_agrupar.py` is the **canonical copy** of the script that groups level-2 trades into operations:
 
-- **El pipeline de captura** lo ejecuta cada día desde la carpeta de datos para generar `nivel3_operaciones_YYYYMMDD.csv`.
-- **El dashboard** importa sus funciones para reconstruir las operaciones, de modo que solo existe una lógica de agrupación.
+- **The capture pipeline** runs it every day from the data folder to produce `nivel3_operaciones_YYYYMMDD.csv`.
+- **The dashboard** imports its functions to rebuild the operations, so there is only one grouping logic.
 
-El script solo usa la biblioteca estándar y se ejecuta igual que siempre:
+The script uses only the standard library and runs as it always has. Its identifiers and console messages are in Spanish:
 
 ```bash
 python3 nivel3_agrupar.py nivel2_trades_YYYYMMDD.csv nivel1_candidatos_YYYYMMDD.csv nivel3_operaciones_YYYYMMDD.csv
 ```
 
-## Qué cambió en el refactor de la Fase 0
+## What changed in the phase 0 refactor
 
-La salida es **idéntica byte a byte**, igual que el mensaje de consola. Los cambios son internos:
+The output is **byte-for-byte identical**, and so is the console message. The changes are internal:
 
-| Cambio | Para qué |
+| Change | Why |
 |---|---|
-| `preparar_filas()`, separada de `cargar()` | El dashboard le pasa filas ya leídas y normalizadas |
-| `resumen_pata()` y `patas_de()`, extraídas de `resumen()` | Detalle por pata para el dashboard; `resumen()` las sigue usando |
-| `id_operacion()` | ID estable `YYYYMMDD-SIMBOLO-HH:MM:SS.mmm-TC` |
-| `resumir_todas()`, `pasa_umbral()` y `filtrar_por_umbral()`, separadas de `main()` | Agrupar y aplicar ediciones manuales antes de filtrar por umbral |
-| `escribir_operaciones()`, separada de `main()` | Claridad; `main()` solo encadena las piezas |
-| Lectura y escritura con `encoding='utf-8'` explícito | En Windows el script anterior fallaba al escribir `→` (calendars y diagonales). En Linux no cambia nada |
-| Error claro si el nivel 2 no tiene trades | Antes fallaba con un `IndexError` poco explicativo |
+| `preparar_filas()`, split from `cargar()` | The dashboard passes it rows that are already read and normalised |
+| `resumen_pata()` and `patas_de()`, extracted from `resumen()` | Per-leg detail for the dashboard; `resumen()` still uses them |
+| `id_operacion()` | Stable ID `YYYYMMDD-SYMBOL-HH:MM:SS.mmm-TC` |
+| `resumir_todas()`, `pasa_umbral()` and `filtrar_por_umbral()`, split from `main()` | Group and apply manual edits before filtering by threshold |
+| `escribir_operaciones()`, split from `main()` | Clarity; `main()` only chains the pieces |
+| Explicit `encoding='utf-8'` for reading and writing | On Windows the previous script failed when writing `→` (calendars and diagonals). Nothing changes on Linux |
+| Clear error if level 2 has no trades | It used to fail with an unhelpful `IndexError` |
 
-La garantía la dan los tests de [`tests/test_no_regression.py`](../tests/test_no_regression.py):
+The guarantee comes from the tests in [`tests/test_no_regression.py`](../tests/test_no_regression.py):
 
-- Con los datos reales de cada día con nivel 2, el script nuevo produce exactamente el mismo CSV y el mismo mensaje que la versión congelada del 01/10/2026 (`tests/legacy/`). Si el día tiene cancelaciones, se compara con la versión congelada sobre el mismo nivel 2 sin ellas (ver más abajo).
-- Lo mismo con un escenario sintético escrito en las variantes de esquema conocidas.
-- Para los días sin cancelaciones cuyo nivel 3 lo generó esa versión, también coincide con el CSV guardado.
+- With the real data of every day with level 2, the new script produces exactly the same CSV and console message as the frozen 01/10/2026 version (`tests/legacy/`). If the day has cancellations, it is compared with the frozen version run on the same level 2 without them (see below).
+- The same with a synthetic scenario written in every known schema variant.
+- For days without cancellations whose level 3 was produced by that version, it also matches the stored CSV.
 
-## Cambio de salida del 19/10/2026: cancelaciones
+## Output change of 19/10/2026: cancellations
 
-Antes de agrupar, el script quita las filas de cancelación (`CANC`, `CNCL`, `CNCO`, `CNOL`) y el trade que anula cada una ([decisión 0015](decisiones/0015-quitar-cancelaciones.md)). Con un nivel 2 sin cancelaciones, la salida no cambia. Si las hay:
+Before grouping, the script drops cancellation rows (`CANC`, `CNCL`, `CNCO`, `CNOL`) and the trade each one cancels ([decision 0015](decisiones/0015-quitar-cancelaciones.md)). With a level 2 without cancellations, the output does not change. If there are any:
 
-- el CSV es el que habría generado la versión anterior con ese nivel 2 sin esas filas;
-- la consola añade una segunda línea, por ejemplo `1 cancelaciones quitadas junto con el trade que anulan`.
+- the CSV is the one the previous version would have produced from that level 2 without those rows;
+- the console adds a second line, for example `1 cancelaciones quitadas junto con el trade que anulan`.
 
-En las capturas analizadas afecta al 02/10 y al 07/10: cada uno pierde dos operaciones que no llegaron a ejecutarse.
+In the captures analysed it affects 02/10 and 07/10: each loses two operations that never went through.
 
-## Cómo desplegar una nueva versión
+## How to deploy a new version
 
-El dashboard nunca escribe en la carpeta de datos, así que el despliegue es manual:
+The dashboard never writes to the data folder, so deployment is manual:
 
-1. Comprueba que los tests pasan: `pytest`.
-2. Copia `pipeline/nivel3_agrupar.py` a la carpeta de datos (solo ese fichero, sustituyendo el anterior).
-3. Verifica la copia comparando hashes; deben coincidir:
+1. Check that the tests pass: `pytest`.
+2. Copy `pipeline/nivel3_agrupar.py` to the data folder (only that file, replacing the previous one).
+3. Check the copy by comparing hashes; they must match:
 
    ```bash
-   sha256sum pipeline/nivel3_agrupar.py <carpeta de datos>/nivel3_agrupar.py
+   sha256sum pipeline/nivel3_agrupar.py <data folder>/nivel3_agrupar.py
    ```
 
-   En Windows, desde cmd: `certutil -hashfile <fichero> SHA256` (un fichero cada vez); desde PowerShell: `Get-FileHash <fichero1>, <fichero2>`.
+   On Windows, from cmd: `certutil -hashfile <file> SHA256` (one file at a time); from PowerShell: `Get-FileHash <file1>, <file2>`.
 
-4. Actualiza el hash esperado en las instrucciones del pipeline de captura: el pipeline calcula el SHA-256 del script antes de ejecutarlo y para si no coincide, así que si te saltas este paso el nivel 3 del día siguiente no se generará.
-5. Añade la versión al historial de abajo y haz commit.
+4. Update the expected hash in the capture pipeline's instructions: the pipeline computes the script's SHA-256 before running it and stops if it does not match, so if you skip this step the next day's level 3 will not be produced.
+5. Add the version to the history below and commit.
 
-`python -m tape_dashboard.report` avisa si la copia de la carpeta de datos no coincide con la del repositorio; a partir de la Fase 3, la interfaz también.
+`python -m tape_dashboard.report` warns if the copy in the data folder does not match the repository's; from phase 3, the interface will too.
 
-## Historial de versiones
+## Version history
 
-| Versión | SHA-256 | Desplegada | Notas |
+| Version | SHA-256 | Deployed | Notes |
 |---|---|---|---|
-| 01/10/2026 | `6420fc62206f331be4501939e1b5dfaa4c7f7a5bf02ccda83e881e744c4f662c` | 01/10/2026 | Versión de referencia. Su copia congelada en `tests/legacy/` tiene un comentario generalizado (ver [decisión 0006](decisiones/0006-oraculo-congelado-y-datos-sinteticos.md)), así que su hash es otro; el comportamiento es idéntico |
-| Fase 0 | — | no | Refactor sin cambios de salida; no hacía falta desplegarlo |
-| 19/10/2026 | `59962f5b960389732e1a0b2425b04e74a94f5b0ae3adafc0fbacbedadff247a2` | 19/10/2026 | Quita las cancelaciones y el trade que anulan |
-| 21/10/2026 | `aea159f50faf93ed6b7fef345d884e6ac8e38247275287c3ebc542b64d8c571a` | pendiente | Generaliza un comentario sobre la procedencia de los nombres de columna; misma salida |
+| 01/10/2026 | `6420fc62206f331be4501939e1b5dfaa4c7f7a5bf02ccda83e881e744c4f662c` | 01/10/2026 | Reference version. Its frozen copy in `tests/legacy/` has one generalised comment (see [decision 0006](decisiones/0006-oraculo-congelado-y-datos-sinteticos.md)), so its hash differs; the behaviour is identical |
+| Phase 0 | — | no | Refactor without output changes; no need to deploy it |
+| 19/10/2026 | `59962f5b960389732e1a0b2425b04e74a94f5b0ae3adafc0fbacbedadff247a2` | 19/10/2026 | Drops cancellations and the trades they cancel |
+| 21/10/2026 | `aea159f50faf93ed6b7fef345d884e6ac8e38247275287c3ebc542b64d8c571a` | pending | Generalises a comment about where the column names come from; same output |

@@ -30,7 +30,7 @@ Una entrada breve por cada decisión relevante: qué se decidió, por qué y qu�
 ## Decisiones pendientes
 
 - **Risk reversal**: ¿se separa de straddles y strangles y va al neto direccional? Hoy se descarta, y con él los sintéticos y las call + put con distinta expiración ([0022](0022-call-put-y-sinteticos.md)).
-- **Umbral para precios por debajo de $1**: el script les aplica el tramo de 3 M; se mantiene mientras no aparezcan (ver [reglas de negocio](../reglas-negocio.md#1-umbral-de-premium-por-precio-del-subyacente)).
+- **Umbral para precios por debajo de $1**: el script les aplica el tramo de 3 M; se mantiene mientras no aparezcan (ver [reglas de negocio](../business-rules.md#1-premium-threshold-by-underlying-price)).
 - **Frontera de la agresividad en el script**: alinear su columna `direccion` con la especificación cambiaría su salida ([0017](0017-frontera-de-la-agresividad.md)).
 - **Stack de interfaz** y **uso solo local o desde otros dispositivos** (antes de la Fase 3).
 - **Idioma de la documentación** al publicar.

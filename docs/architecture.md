@@ -59,7 +59,7 @@ flowchart LR
 
 Anything that does not fit becomes an `Issue` attached to its file: errors (the file or the day is not used), warnings and informational notes. Nothing is dropped silently.
 
-**Rules** (`tape_dashboard.rules`). Pure functions, no input or output: each leg's side (`sides`), the catalogue of two-leg operation types (`strategies`) and the classification of each operation into a single destination (`classification`). See the [business rules](reglas-negocio.md#5-clasificación-de-operaciones).
+**Rules** (`tape_dashboard.rules`). Pure functions, no input or output: each leg's side (`sides`), the catalogue of two-leg operation types (`strategies`) and the classification of each operation into a single destination (`classification`). See the [business rules](business-rules.md#5-classifying-operations).
 
 **Edits** (`tape_dashboard.edits`). `store` keeps corrections and manual legs in a SQLite file in the user-data folder. `apply` applies them on a snapshot, in the order the specification asks for: rebuild every operation, add the manual legs (recomputing with the script), classify with the corrections and, last, filter by threshold. It also detects orphan edits, which are never deleted. It provides the queries for tabs 1 and 2.
 

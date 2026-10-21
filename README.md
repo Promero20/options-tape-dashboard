@@ -23,7 +23,7 @@ Dashboard: rebuilds the operations from level 2 with the same level-3 code,
 applies the manual edits and classifies them.
 ```
 
-How those files are obtained is outside the scope of this repository. The business rules (thresholds, aggressiveness, grouping and classification) are in [docs/reglas-negocio.md](docs/reglas-negocio.md).
+How those files are obtained is outside the scope of this repository. The business rules (thresholds, aggressiveness, grouping and classification) are in [docs/business-rules.md](docs/business-rules.md).
 
 File names, CSV column names and the level-3 script (`pipeline/nivel3_agrupar.py`) are in Spanish, as the pipeline produces and runs them. Some code comments are still in Spanish as well.
 
@@ -73,7 +73,7 @@ The repository contains no data: no CSV files, manual edits, positions or creden
 - [Data contract](docs/data-contract.md)
 - [Data quality](docs/data-quality.md)
 - [Architecture](docs/architecture.md)
-- [Business rules](docs/reglas-negocio.md)
+- [Business rules](docs/business-rules.md)
 - [Level-3 script and its deployment](docs/level3-script.md)
 - [Decision log](docs/decisiones/README.md)
 - [Phased plan](docs/plan.md)

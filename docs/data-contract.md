@@ -102,7 +102,7 @@ The aliases of the columns the script uses are exactly those in `ALIASES_COLUMNA
 
 ## Level 3: operations
 
-Output of `pipeline/nivel3_agrupar.py`: one row per operation above the threshold. The dashboard does not use it as a source; it compares it with its own reconstruction. The meaning of each field is in the [business rules](reglas-negocio.md#3-agrupación-de-trades-en-operaciones).
+Output of `pipeline/nivel3_agrupar.py`: one row per operation above the threshold. The dashboard does not use it as a source; it compares it with its own reconstruction. The meaning of each field is in the [business rules](business-rules.md#3-grouping-trades-into-operations).
 
 | Variant | Captures | Columns |
 |---|---|---|
@@ -116,7 +116,7 @@ For every capture with level 2, the dashboard groups **all** trades with the scr
 
 | Field | Content |
 |---|---|
-| `id` | `YYYYMMDD-SYMBOL-HH:MM:SS.mmm-TC` ([business rules](reglas-negocio.md#4-identificador-de-operación)) |
+| `id` | `YYYYMMDD-SYMBOL-HH:MM:SS.mmm-TC` ([business rules](business-rules.md#4-operation-id)) |
 | `capture_date` | Capture date (the one the range selectors use) |
 | `summary` | The script's `resumen()` row, with `premium_total` in dollars |
 | `legs` | Per-leg detail from `patas_de()`: `contract_symbol, type, strike, exp_date, n_trades, size, premium, agr, precio_medio` |
