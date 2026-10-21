@@ -32,7 +32,7 @@ That is 14 rebuildable captures, in the order of 40,000 trades in total.
 
 ## 22/09 has no trades
 
-Its level 2 has only a header. Its level 3 does store 30 operations from an old version, but without per-leg detail. The day is discarded ([decision 0009](decisiones/0009-descartar-22-09.md)).
+Its level 2 has only a header. Its level 3 does store 30 operations from an old version, but without per-leg detail. The day is discarded ([decision 0009](decisions/0009-discard-2026-09-22.md)).
 
 ## Size filter: ≥ 10, not > 10
 
@@ -44,11 +44,11 @@ There are two trades with condition `CANC`, one in the 02/10 capture and one in 
 
 - Each one cancels an earlier trade on the same contract, with the same size and price.
 - The 01/10 version of the script did not treat them specially: the cancelled trade and the cancellation became two operations, and all four were above the threshold. The stored level 3 of those days therefore contains operations that never went through.
-- Since 19/10 the script drops the cancellation and the trade it cancels before grouping ([decision 0015](decisiones/0015-quitar-cancelaciones.md)). The stored level 3 of those two days shows up in the validation as "previous version".
+- Since 19/10 the script drops the cancellation and the trade it cancels before grouping ([decision 0015](decisions/0015-drop-cancellations.md)). The stored level 3 of those two days shows up in the validation as "previous version".
 
 ## Operations repeated across captures
 
-Four operations from 14/09 appear in both the 15/09 and the 16/09 captures, because the pipeline queried the same contracts for that date again. In one of them the number of trades differs between captures. None is above the threshold. In multi-day ranges, the one from the most recent capture counts ([decision 0010](decisiones/0010-operacion-en-varias-capturas.md)).
+Four operations from 14/09 appear in both the 15/09 and the 16/09 captures, because the pipeline queried the same contracts for that date again. In one of them the number of trades differs between captures. None is above the threshold. In multi-day ranges, the one from the most recent capture counts ([decision 0010](decisions/0010-operation-in-several-captures.md)).
 
 ## Level-2 oddities that do not change the logic
 
@@ -73,7 +73,7 @@ All of them are covered in the [data contract](data-contract.md):
 
 ## Questionable groupings
 
-The 50 ms cross with the same Trade Condition, chained by union-find, sometimes joins prints that do not look like the same order: for example, multi-legs with one leg of thousands of contracts and another of a few dozen. Grouping is not changed; the list will flag them ([decision 0012](decisiones/0012-marcar-ratios-anomalos.md)).
+The 50 ms cross with the same Trade Condition, chained by union-find, sometimes joins prints that do not look like the same order: for example, multi-legs with one leg of thousands of contracts and another of a few dozen. Grouping is not changed; the list will flag them ([decision 0012](decisions/0012-flag-anomalous-size-ratios.md)).
 
 ## The original script on Windows
 

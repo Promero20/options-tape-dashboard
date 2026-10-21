@@ -47,7 +47,7 @@ flowchart LR
 
 ## Layers
 
-**Pipeline** ([`pipeline/nivel3_agrupar.py`](../pipeline/nivel3_agrupar.py)). A standalone script, standard library only, that the capture pipeline runs to produce level 3. It is the only implementation of the grouping: the dashboard imports its functions ([decision 0002](decisiones/0002-una-sola-logica-de-agrupacion.md)). Its output is protected by the regression test.
+**Pipeline** ([`pipeline/nivel3_agrupar.py`](../pipeline/nivel3_agrupar.py)). A standalone script, standard library only, that the capture pipeline runs to produce level 3. It is the only implementation of the grouping: the dashboard imports its functions ([decision 0002](decisions/0002-single-grouping-logic.md)). Its output is protected by the regression test.
 
 **Data layer** (`tape_dashboard.data`). Reads the data folder without modifying it and produces the operations:
 

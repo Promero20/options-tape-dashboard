@@ -2,7 +2,7 @@
 
 Oct 15, 2026 · @Pablo Romero
 
-> Decisions taken after this specification are recorded in [docs/decisiones/](docs/decisiones/README.md); where they differ, they take precedence.
+> Decisions taken after this specification are recorded in [docs/decisions/](docs/decisions/README.md); where they differ, they take precedence.
 
 ## Context
 

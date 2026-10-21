@@ -1,6 +1,6 @@
 """
 Reglas de clasificación: una prueba por cada fila de la tabla de la
-especificación, más los casos que la tabla no cubría (decisiones 0016-0020)
+especificación, más los casos que la tabla no cubría (decisiones 0016-0022)
 y las correcciones manuales.
 """
 

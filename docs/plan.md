@@ -1,6 +1,6 @@
 # Phased plan
 
-Each phase ends with the tests passing, the documentation up to date and a commit. Decisions taken along the way go to the [decision log](decisiones/README.md).
+Each phase ends with the tests passing, the documentation up to date and a commit. Decisions taken along the way go to the [decision log](decisions/README.md).
 
 | Phase | Content | Status |
 |---|---|---|
@@ -38,13 +38,13 @@ Phase 2 comes before the interface because the direction pop-up, the charts and 
 ## Phase 2: classification, catalogue and edits
 
 - A single destination per operation, following the specification's rules and using per-leg detail.
-- Operation-type catalogue (bull call, bear put, straddle…) that sets each leg's side ([0011](decisiones/0011-pata-manual-tipo-de-operacion.md)).
+- Operation-type catalogue (bull call, bear put, straddle…) that sets each leg's side ([0011](decisions/0011-manual-leg-operation-type.md)).
 - Local store for manual edits (directions, manual legs, chosen types), with orphan detection.
-- Anomalous size ratio flag ([0012](decisiones/0012-marcar-ratios-anomalos.md)).
+- Anomalous size ratio flag ([0012](decisions/0012-flag-anomalous-size-ratios.md)).
 
 **Done when:** there are tests for every rule in the specification, every catalogue type, the real cases the rules did not cover, and premium conservation. ✔
 
-It also includes the script change that drops cancellations ([0015](decisiones/0015-quitar-cancelaciones.md)).
+It also includes the script change that drops cancellations ([0015](decisions/0015-drop-cancellations.md)).
 
 ## Phases 3 to 7
 

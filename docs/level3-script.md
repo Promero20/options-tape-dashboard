@@ -33,7 +33,7 @@ The guarantee comes from the tests in [`tests/test_no_regression.py`](../tests/t
 
 ## Output change of 19/10/2026: cancellations
 
-Before grouping, the script drops cancellation rows (`CANC`, `CNCL`, `CNCO`, `CNOL`) and the trade each one cancels ([decision 0015](decisiones/0015-quitar-cancelaciones.md)). With a level 2 without cancellations, the output does not change. If there are any:
+Before grouping, the script drops cancellation rows (`CANC`, `CNCL`, `CNCO`, `CNOL`) and the trade each one cancels ([decision 0015](decisions/0015-drop-cancellations.md)). With a level 2 without cancellations, the output does not change. If there are any:
 
 - the CSV is the one the previous version would have produced from that level 2 without those rows;
 - the console adds a second line, for example `1 cancelaciones quitadas junto con el trade que anulan`.
@@ -63,7 +63,7 @@ The dashboard never writes to the data folder, so deployment is manual:
 
 | Version | SHA-256 | Deployed | Notes |
 |---|---|---|---|
-| 01/10/2026 | `6420fc62206f331be4501939e1b5dfaa4c7f7a5bf02ccda83e881e744c4f662c` | 01/10/2026 | Reference version. Its frozen copy in `tests/legacy/` has one generalised comment (see [decision 0006](decisiones/0006-oraculo-congelado-y-datos-sinteticos.md)), so its hash differs; the behaviour is identical |
+| 01/10/2026 | `6420fc62206f331be4501939e1b5dfaa4c7f7a5bf02ccda83e881e744c4f662c` | 01/10/2026 | Reference version. Its frozen copy in `tests/legacy/` has one generalised comment (see [decision 0006](decisions/0006-frozen-oracle-and-synthetic-data.md)), so its hash differs; the behaviour is identical |
 | Phase 0 | — | no | Refactor without output changes; no need to deploy it |
 | 19/10/2026 | `59962f5b960389732e1a0b2425b04e74a94f5b0ae3adafc0fbacbedadff247a2` | 19/10/2026 | Drops cancellations and the trades they cancel |
 | 21/10/2026 | `aea159f50faf93ed6b7fef345d884e6ac8e38247275287c3ebc542b64d8c571a` | pending | Generalises a comment about where the column names come from; same output |

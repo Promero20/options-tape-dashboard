@@ -38,7 +38,7 @@ agresividad = (trade price − mid) / half_spread
 
 ## 3. Grouping trades into operations
 
-**Cancellations are dropped before grouping.** A row with condition `CANC`, `CNCL`, `CNCO` or `CNOL` is not a trade: it cancels an earlier one. Both the cancellation and the trade it cancels are dropped; the cancelled trade is the most recent earlier one with the same contract, size and price ([decision 0015](decisiones/0015-quitar-cancelaciones.md)).
+**Cancellations are dropped before grouping.** A row with condition `CANC`, `CNCL`, `CNCO` or `CNOL` is not a trade: it cancels an earlier one. Both the cancellation and the trade it cancels are dropped; the cancelled trade is the most recent earlier one with the same contract, size and price ([decision 0015](decisions/0015-drop-cancellations.md)).
 
 A group of trades is an operation: what looks like a single order or a single actor. There are two mechanisms, combined with union-find (if a trade is linked by either one, its whole group is merged):
 
@@ -77,11 +77,11 @@ It is the date and millisecond time of the operation's **first trade**, its unde
 - With it, the ID is **unique within a capture by construction**: two groups with the same underlying, millisecond and condition would already have been merged by mechanism A or B.
 - The same operation can appear in two captures if the pipeline queried the same contract and date twice. It then has the same ID in both, and the dashboard keeps the most recent capture.
 
-See [decision 0007](decisiones/0007-formato-id-operacion.md).
+See [decision 0007](decisions/0007-operation-id-format.md).
 
 ## 5. Classifying operations
 
-Implementation: [`src/tape_dashboard/rules/`](../src/tape_dashboard/rules/). Each operation above the threshold goes to **a single destination** ([decision 0004](decisiones/0004-un-destino-por-operacion.md)), so no premium is counted twice. The destination values are in Spanish, as the code uses them:
+Implementation: [`src/tape_dashboard/rules/`](../src/tape_dashboard/rules/). Each operation above the threshold goes to **a single destination** ([decision 0004](decisions/0004-one-destination-per-operation.md)), so no premium is counted twice. The destination values are in Spanish, as the code uses them:
 
 | Destination | Where it shows |
 |---|---|
@@ -96,29 +96,29 @@ Implementation: [`src/tape_dashboard/rules/`](../src/tape_dashboard/rules/). Eac
 
 A leg is **bought** if its aggressiveness is > +0.25, **sold** if it is < −0.25, and **undetermined** in between, at the boundary or without data.
 
-Aggressiveness is computed in floating point, so a trade at a quarter of the half-spread comes out as 0.2499999… or as 0.2500000…3. There are 37 such legs in the real data. A 10⁻⁹ tolerance makes the boundary always undetermined, as the specification says ([decision 0017](decisiones/0017-frontera-de-la-agresividad.md)).
+Aggressiveness is computed in floating point, so a trade at a quarter of the half-spread comes out as 0.2499999… or as 0.2500000…3. There are 37 such legs in the real data. A 10⁻⁹ tolerance makes the boundary always undetermined, as the specification says ([decision 0017](decisions/0017-aggressiveness-boundary.md)).
 
 ### Rules, in order of precedence
 
 | # | Case | Destination | Strike | Expiration | Premium |
 |---|---|---|---|---|---|
-| 1 | With stock (`TLET`, `TLAT`, `TLCT`, `TLFT`, `TASL`, `TESL`, `TFSL`), even if it has incomplete legs ([0016](decisiones/0016-acciones-e-incompletas.md)) | discarded | — | — | gross |
+| 1 | With stock (`TLET`, `TLAT`, `TLCT`, `TLFT`, `TASL`, `TESL`, `TFSL`), even if it has incomplete legs ([0016](decisions/0016-stock-and-incomplete-legs.md)) | discarded | — | — | gross |
 | 2 | Incomplete legs (declared multi-leg with a single captured leg) | pending | — | — | gross |
 | 3 | Three legs or more | discarded | — | — | gross |
 | 4 | Single-leg bought | net (call = bull, put = bear) | its own | its own | total |
 | 5 | Single-leg sold | walls (put = support, call = resistance) | its own | its own | total |
 | 6 | Single-leg with an undetermined side | undetermined | its own | its own | total |
-| 7 | Call + put: straddle, strangle, synthetic, risk reversal, or different expirations ([0022](decisiones/0022-call-put-y-sinteticos.md)) | discarded, whatever the sides | — | — | gross |
+| 7 | Call + put: straddle, strangle, synthetic, risk reversal, or different expirations ([0022](decisions/0022-call-put-combos-and-synthetics.md)) | discarded, whatever the sides | — | — | gross |
 | 8 | Pure calendar (same type and strike, different expiration) | discarded, whatever the sides | — | — | gross |
 | 9 | Vertical or diagonal with an undetermined leg | undetermined multi-leg | — | — | gross |
-| 10 | Vertical or diagonal with both legs on the same side ([0020](decisiones/0020-correccion-de-multi-legs.md)) | undetermined multi-leg | — | — | gross |
+| 10 | Vertical or diagonal with both legs on the same side ([0020](decisions/0020-correcting-multi-legs.md)) | undetermined multi-leg | — | — | gross |
 | 11 | Debit vertical (bought leg > sold leg) | net | bought leg | shared | bought − sold |
 | 12 | Credit vertical (sold leg > bought leg) | walls | sold leg | shared | sold − bought |
-| 13 | Diagonal (clear sides), credit ones too ([0018](decisiones/0018-diagonales-de-credito.md)) | net, with the direction of the leg with the most premium | bought leg | the nearest | \|bought − sold\| |
+| 13 | Diagonal (clear sides), credit ones too ([0018](decisions/0018-credit-diagonals.md)) | net, with the direction of the leg with the most premium | bought leg | the nearest | \|bought − sold\| |
 
 If a vertical has the same premium on both legs (neither debit nor credit), it goes to undetermined multi-leg.
 
-**Direction.** On the net chart, the sign gives it. On the walls chart, a sold put or a bull put spread is bullish (support) and a sold call or a bear call spread is bearish (resistance). Undetermined ones are `indeterminado`; discarded and pending ones have none. **This is the direction the list shows and edits**; the script's `direccion` column (taken only from the leg with the most premium) is kept as secondary data ([decision 0021](decisiones/0021-direccion-del-listado.md)).
+**Direction.** On the net chart, the sign gives it. On the walls chart, a sold put or a bull put spread is bullish (support) and a sold call or a bear call spread is bearish (resistance). Undetermined ones are `indeterminado`; discarded and pending ones have none. **This is the direction the list shows and edits**; the script's `direccion` column (taken only from the leg with the most premium) is kept as secondary data ([decision 0021](decisions/0021-direction-shown-in-the-list.md)).
 
 ### Examples
 
@@ -130,7 +130,7 @@ If a vertical has the same premium on both legs (neither debit nor credit), it g
 ### Manual corrections
 
 - **Single-leg**: the user sets the direction, and with it the side. Bull on a call = bought (net); bull on a put = sold (walls, support); bear on a call = sold (walls, resistance); bear on a put = bought (net); undetermined = undetermined.
-- **Two legs**: the user picks the **operation type** from a catalogue filtered by the legs' geometry ([decisions 0011](decisiones/0011-pata-manual-tipo-de-operacion.md) and [0020](decisiones/0020-correccion-de-multi-legs.md)). The type sets each leg's side and the operation is classified with the same rules.
+- **Two legs**: the user picks the **operation type** from a catalogue filtered by the legs' geometry ([decisions 0011](decisions/0011-manual-leg-operation-type.md) and [0020](decisions/0020-correcting-multi-legs.md)). The type sets each leg's side and the operation is classified with the same rules.
 
 | Geometry | Types offered |
 |---|---|
@@ -153,4 +153,4 @@ A manual leg joins the operation as one more trade row: with the time and Trade 
 
 ### Anomalous size ratio
 
-A multi-leg whose largest leg has **10 times or more** the contracts of its smallest one is flagged for review ([decision 0012](decisiones/0012-marcar-ratios-anomalos.md)). In the real data, multi-legs above the threshold have ratios from 1 to 5.9, and then jump to 11.9 and more. It does not change the destination.
+A multi-leg whose largest leg has **10 times or more** the contracts of its smallest one is flagged for review ([decision 0012](decisions/0012-flag-anomalous-size-ratios.md)). In the real data, multi-legs above the threshold have ratios from 1 to 5.9, and then jump to 11.9 and more. It does not change the destination.

@@ -19,7 +19,7 @@ A CSV whose name matches none of these patterns is reported as "not recognised".
 - **Encoding** UTF-8; separator `,`; the first row is the header.
 - **Columns**: each canonical column accepts one or more alternative names. Column order does not matter.
 - **Required columns** are the ones the level-3 script or the dashboard need. If any is missing, the file is not used and is reported **with its name and the missing columns**.
-- **Variants**: each header is compared with the known variants (tables below). A new one that has the required columns is loaded, with a warning saying it is a new variant and which columns are missing or extra ([decision 0014](decisiones/0014-columnas-obligatorias-y-variantes.md)).
+- **Variants**: each header is compared with the known variants (tables below). A new one that has the required columns is loaded, with a warning saying it is a new variant and which columns are missing or extra ([decision 0014](decisions/0014-required-columns-and-variants.md)).
 - **Values** that cannot be parsed are left empty and counted in one warning per column. They are never dropped silently.
 
 ## Level 1: candidates
@@ -126,7 +126,7 @@ For every capture with level 2, the dashboard groups **all** trades with the scr
 
 ## Manual edits
 
-SQLite file `ediciones.sqlite` in the user-data folder, outside git and outside the pipeline's data folder ([decision 0019](decisiones/0019-almacen-de-ediciones.md)). Each edit points to an operation ID. If the ID no longer exists, the edit is listed as an orphan (in the report and, from phase 3, in the interface) and is never deleted.
+SQLite file `ediciones.sqlite` in the user-data folder, outside git and outside the pipeline's data folder ([decision 0019](decisions/0019-edits-store.md)). Each edit points to an operation ID. If the ID no longer exists, the edit is listed as an orphan (in the report and, from phase 3, in the interface) and is never deleted.
 
 **`overrides`**: a correction of an operation; at most one per operation.
 

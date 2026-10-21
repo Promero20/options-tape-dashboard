@@ -75,5 +75,5 @@ The repository contains no data: no CSV files, manual edits, positions or creden
 - [Architecture](docs/architecture.md)
 - [Business rules](docs/business-rules.md)
 - [Level-3 script and its deployment](docs/level3-script.md)
-- [Decision log](docs/decisiones/README.md)
+- [Decision log](docs/decisions/README.md)
 - [Phased plan](docs/plan.md)
