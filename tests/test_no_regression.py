@@ -21,7 +21,7 @@ CANCEL_CONDITIONS = {"CANC", "CNCL", "CNCO", "CNOL"}
 
 # Días cuyo nivel3 guardado lo generó la versión del 01/10 y que no tienen
 # cancelaciones: el script actual debe reproducirlo byte a byte. Los
-# anteriores salieron de versiones más antiguas (ver docs/calidad-datos.md).
+# anteriores salieron de versiones más antiguas (ver docs/data-quality.md).
 DAYS_WITH_CURRENT_LEVEL3 = ["20261006", "20261013", "20261015"]
 
 

@@ -20,7 +20,7 @@ from tape_dashboard.rules import classification as c
 pytestmark = pytest.mark.real_data
 
 # Estado conocido del nivel 3 guardado en las capturas analizadas al empezar
-# el proyecto (ver docs/calidad-datos.md). Las capturas posteriores deben ser
+# el proyecto (ver docs/data-quality.md). Las capturas posteriores deben ser
 # idénticas a la reconstrucción.
 KNOWN_VALIDATION = {
     "20260812": validation.NO_LEVEL3,

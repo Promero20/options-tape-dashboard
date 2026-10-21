@@ -1,6 +1,6 @@
 """
 Indicadores de calidad del nivel 2. Son informativos: no cambian la
-agrupación ni la clasificación (ver docs/calidad-datos.md).
+agrupación ni la clasificación (ver docs/data-quality.md).
 """
 
 import collections

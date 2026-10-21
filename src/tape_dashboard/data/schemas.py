@@ -11,7 +11,7 @@ acepta. Al leer un fichero:
 - si el encabezado no coincide con ninguna variante conocida pero tiene las
   obligatorias, se usa y se avisa de que es una variante nueva.
 
-El contrato completo (tipos y significado) está en docs/contrato-datos.md.
+El contrato completo (tipos y significado) está en docs/data-contract.md.
 """
 
 from dataclasses import dataclass, field

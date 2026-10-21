@@ -1,6 +1,6 @@
 # Dashboard Tape Reading
 
-A local Python dashboard to review the daily options flow. It reads the CSV files left by an external capture pipeline (with the schema described in the [data contract](docs/contrato-datos.md)), rebuilds the operations from the individual trades and shows them in three tabs:
+A local Python dashboard to review the daily options flow. It reads the CSV files left by an external capture pipeline (with the schema described in the [data contract](docs/data-contract.md)), rebuilds the operations from the individual trades and shows them in three tabs:
 
 1. **Operations**: the detected operations, with net directional and wall charts per underlying, and the SPY GEX as market context.
 2. **Incomplete legs**: multi-leg operations missing a leg, to be completed by hand.
@@ -66,13 +66,13 @@ The data folder and the user-data folder are set with the `TAPE_DATA_DIR` and `T
 
 ## Data
 
-The repository contains no data: no CSV files, manual edits, positions or credentials (see `.gitignore`; a test checks it). The format of each input file is in the [data contract](docs/contrato-datos.md).
+The repository contains no data: no CSV files, manual edits, positions or credentials (see `.gitignore`; a test checks it). The format of each input file is in the [data contract](docs/data-contract.md).
 
 ## Documentation
 
-- [Data contract](docs/contrato-datos.md)
-- [Data quality](docs/calidad-datos.md)
-- [Architecture](docs/arquitectura.md)
+- [Data contract](docs/data-contract.md)
+- [Data quality](docs/data-quality.md)
+- [Architecture](docs/architecture.md)
 - [Business rules](docs/reglas-negocio.md)
 - [Level-3 script and its deployment](docs/level3-script.md)
 - [Decision log](docs/decisiones/README.md)

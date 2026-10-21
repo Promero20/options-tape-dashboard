@@ -9,7 +9,7 @@ Las ediciones manuales (correcciones de dirección o de tipo de operación, y pa
 
 ## Decisión
 
-Un único fichero SQLite, `ediciones.sqlite`, en la carpeta de datos del usuario (configurable y fuera de git). Se usa `sqlite3` de la biblioteca estándar. El esquema está en el [contrato de datos](../contrato-datos.md#ediciones-manuales).
+Un único fichero SQLite, `ediciones.sqlite`, en la carpeta de datos del usuario (configurable y fuera de git). Se usa `sqlite3` de la biblioteca estándar. El esquema está en el [contrato de datos](../data-contract.md#manual-edits).
 
 La lectura para el informe abre el fichero en modo solo lectura y no lo crea si no existe. La aplicación de las ediciones trabaja sobre una instantánea en memoria, con funciones puras que se prueban sin base de datos.
 

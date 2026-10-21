@@ -4,7 +4,7 @@ Almacén de ediciones manuales (decisiones 0003 y 0019).
 Un fichero SQLite en la carpeta de datos del usuario, nunca en la de datos del pipeline
 ni en git. Cada edición apunta a un ID de operación; si el ID deja de
 existir, la edición queda huérfana y se muestra para revisarla, pero no se
-borra. El esquema está en docs/contrato-datos.md.
+borra. El esquema está en docs/data-contract.md.
 """
 
 import sqlite3
