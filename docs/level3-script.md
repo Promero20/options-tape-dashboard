@@ -66,4 +66,4 @@ The dashboard never writes to the data folder, so deployment is manual:
 | 01/10/2026 | `6420fc62206f331be4501939e1b5dfaa4c7f7a5bf02ccda83e881e744c4f662c` | 01/10/2026 | Reference version. Its frozen copy in `tests/legacy/` has one generalised comment (see [decision 0006](decisions/0006-frozen-oracle-and-synthetic-data.md)), so its hash differs; the behaviour is identical |
 | Phase 0 | — | no | Refactor without output changes; no need to deploy it |
 | 19/10/2026 | `59962f5b960389732e1a0b2425b04e74a94f5b0ae3adafc0fbacbedadff247a2` | 19/10/2026 | Drops cancellations and the trades they cancel |
-| 21/10/2026 | `aea159f50faf93ed6b7fef345d884e6ac8e38247275287c3ebc542b64d8c571a` | pending | Generalises a comment about where the column names come from; same output |
+| 21/10/2026 | `aea159f50faf93ed6b7fef345d884e6ac8e38247275287c3ebc542b64d8c571a` | 23/10/2026 | Generalises a comment about where the column names come from; same output. Hash checked on both copies after deployment |
