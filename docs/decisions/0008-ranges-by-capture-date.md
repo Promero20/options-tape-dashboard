@@ -11,6 +11,8 @@ The specification assumed the selectors filter by operation date, that is, when 
 
 All range selectors (today, last week, last month, custom), in tabs 1 and 2 and in the charts, filter by **capture date**. "Today" is today's capture; if there is none yet (weekend, holiday, or the pipeline has not run yet), the latest capture is shown with a visible warning. The operation date is still shown as a column.
 
+"Last week" and "last month" are the captures of the last 7 and 30 calendar days, today included (made explicit in phase 3).
+
 ## Rejected alternatives
 
 - **"Today" by capture and the rest by operation date**: two different criteria on the same screen.

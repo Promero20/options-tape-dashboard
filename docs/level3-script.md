@@ -54,10 +54,10 @@ The dashboard never writes to the data folder, so deployment is manual:
 
    On Windows, from cmd: `certutil -hashfile <file> SHA256` (one file at a time); from PowerShell: `Get-FileHash <file1>, <file2>`.
 
-4. Update the expected hash in the capture pipeline's instructions: the pipeline computes the script's SHA-256 before running it and stops if it does not match, so if you skip this step the next day's level 3 will not be produced.
+4. Update the expected hash in the capture pipeline's instructions: the pipeline computes the script's SHA-256 before running it and stops if it does not match, so if you skip this step the next day's level 3 will not be produced. If `[pipeline] expected_hash_file` points to that file, the dashboard warns while it does not contain the new hash ([decision 0026](decisions/0026-declared-script-hash-check.md)).
 5. Add the version to the history below and commit.
 
-`python -m tape_dashboard.report` warns if the copy in the data folder does not match the repository's; from phase 3, the interface will too.
+`python -m tape_dashboard.report` and the interface's warnings banner both warn if the copy in the data folder does not match the repository's.
 
 ## Version history
 

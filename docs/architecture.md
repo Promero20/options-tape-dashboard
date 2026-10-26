@@ -9,6 +9,8 @@ flowchart LR
         S[nivel3_agrupar.py<br/>deployed copy]
     end
 
+    H[declared script hash<br/>optional, read-only]
+
     subgraph repo["This repository"]
         P[pipeline/nivel3_agrupar.py<br/>canonical copy]
         subgraph data["tape_dashboard.data"]
@@ -26,9 +28,19 @@ flowchart LR
             ST[store<br/>SQLite]
             AP[apply<br/>manual legs, corrections, orphans]
         end
-        APP[application<br/>phase 3+]
+        subgraph app["tape_dashboard.app"]
+            STATE[state<br/>dataset in memory, reload]
+            W[warnings<br/>banner]
+            subgraph tab1["tabs.operations"]
+                PURE[ranges + rows + editing<br/>pure functions]
+                CB[callbacks<br/>thin wrappers]
+            end
+            TABS[tabs.incomplete, tabs.positions<br/>placeholders]
+        end
         REP[report<br/>CLI]
     end
+
+    B([browser<br/>127.0.0.1 only])
 
     U[(user data<br/>edits and positions<br/>outside git)]
 
@@ -41,7 +53,14 @@ flowchart LR
     D --> AP --> RULES
     U <--> ST --> AP
     P -- functions --> AP
-    RULES --> APP
+    D --> STATE
+    STATE --> W & CB
+    P -. hash comparison .- H
+    H --> W
+    AP --> CB
+    PURE --> CB
+    CB -- corrections --> ST
+    CB & W & TABS <--> B
     D & V & Q & AP --> REP
 ```
 
@@ -63,7 +82,14 @@ Anything that does not fit becomes an `Issue` attached to its file: errors (the 
 
 **Edits** (`tape_dashboard.edits`). `store` keeps corrections and manual legs in a SQLite file in the user-data folder. `apply` applies them on a snapshot, in the order the specification asks for: rebuild every operation, add the manual legs (recomputing with the script), classify with the corrections and, last, filter by threshold. It also detects orphan edits, which are never deleted. It provides the queries for tabs 1 and 2.
 
-**Interface** (phase 3 onwards). The three tabs on top of the `Dataset` and the rules.
+**Application** (`tape_dashboard.app`). A Dash app, started with `python -m tape_dashboard`, that only listens on 127.0.0.1 ([decision 0023](decisions/0023-ui-stack.md)):
+
+- `state.AppState` holds what every callback shares: the `Dataset`, loaded once at start-up and re-read by the Reload button, and the edits store, read again on every request so that a saved correction shows at once.
+- `warnings` gathers the notices of the banner: a missing data folder, the deployed script compared with the canonical one, the declared hash ([decision 0026](decisions/0026-declared-script-hash-check.md)), every `Issue` that is not informational, and orphan edits.
+- `layout` builds the page: header, banner and one tab per package in `tabs/`. Each tab exposes `TITLE`, `layout(state)` and `register(app, state)`.
+- In `tabs/operations`, the logic the interface adds is in pure functions: `ranges` (which capture dates a preset covers), `rows` (grid rows and columns), `editing` (which correction an operation accepts, and saving it). `view` builds the components and `callbacks` connects them. Each callback calls a controller that takes the state and plain values (`grid_content`, `detail_content`, `modal_action`), so the tests call the controllers without a browser.
+- Two counters in `dcc.Store` (`data-version`, `edits-version`) tell the callbacks when to refresh: Reload increments the first, saving a correction the second. Grid rows carry a stable ID (`getRowId`), so a refresh updates them in place instead of rebuilding the grid.
+- The editing pop-up is plain Dash with local CSS: no component library or external stylesheet ([decision 0027](decisions/0027-editing-pop-up-without-extra-dependencies.md)).
 
 ## Data layer design choices
 

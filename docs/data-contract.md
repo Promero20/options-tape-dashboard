@@ -126,7 +126,7 @@ For every capture with level 2, the dashboard groups **all** trades with the scr
 
 ## Manual edits
 
-SQLite file `edits.sqlite` in the user-data folder, outside git and outside the pipeline's data folder ([decision 0019](decisions/0019-edits-store.md)). Each edit points to an operation ID. If the ID no longer exists, the edit is listed as an orphan (in the report and, from phase 3, in the interface) and is never deleted.
+SQLite file `edits.sqlite` in the user-data folder, outside git and outside the pipeline's data folder ([decision 0019](decisions/0019-edits-store.md)). Each edit points to an operation ID. If the ID no longer exists, the edit is listed as an orphan (in the report and in the interface's warnings banner) and is never deleted.
 
 **`overrides`**: a correction of an operation; at most one per operation.
 

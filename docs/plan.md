@@ -7,7 +7,7 @@ Each phase ends with the tests passing, the documentation up to date and a commi
 | 0 | Scaffolding and refactor of `nivel3_agrupar.py` with a regression test | **done** |
 | 1 | Data layer: schemas, normalisation and operation reconstruction | **done** |
 | 2 | Classification, operation-type catalogue and manual edits (pure logic) | **done** |
-| 3 | Application and tab 1: list | pending |
+| 3 | Application and tab 1: list | **done** |
 | 4 | Tab 1: net directional and walls charts | pending |
 | 5 | Tab 2: incomplete legs | pending |
 | 6 | Tab 3: positions | pending |
@@ -46,9 +46,18 @@ Phase 2 comes before the interface because the direction pop-up, the charts and 
 
 It also includes the script change that drops cancellations ([0015](decisions/0015-drop-cancellations.md)).
 
-## Phases 3 to 7
+## Phase 3: application and tab 1 (list)
 
-- **3**: application with the three tabs, in Dash, local only and with callbacks organised per tab ([0023](decisions/0023-ui-stack.md)); list with sorting and filters, range selector by capture date, direction pop-up, warnings (schemas, orphan edits, outdated pipeline script).
+- Interface, stored values and new code in English ([0025](decisions/0025-interface-and-new-code-in-english.md)).
+- Dash application with the three tabs, local only, with callbacks organised per tab ([0023](decisions/0023-ui-stack.md)). Tabs 2 and 3 are placeholders.
+- Tab 1: range selector by capture date, list with sorting and filters on every column, pop-up to correct the direction or the operation type, detail of the selected operation, and a Reload button.
+- Warnings banner: schemas, days that cannot be rebuilt, orphan edits, outdated script, and the optional declared-hash check ([0026](decisions/0026-declared-script-hash-check.md)).
+- Pop-up without extra dependencies ([0027](decisions/0027-editing-pop-up-without-extra-dependencies.md)).
+
+**Done when:** the interface's pure functions (ranges, rows, editing, warnings) and its controllers are tested on synthetic data; the app builds, serves its layout and answers its callbacks over HTTP; the list builds for the whole real period; and the server starts on 127.0.0.1 with the real data. ✔
+
+## Phases 4 to 7
+
 - **4**: net directional and walls charts.
 - **5**: tab 2, with a day selector, the list of incomplete operations above the threshold and a form with the operation type.
 - **6**: positions, history and P&L, with a model ready for a future read-only import from tastytrade.
