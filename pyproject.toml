@@ -13,6 +13,7 @@ requires-python = ">=3.11"
 dependencies = [
     "dash>=4.4,<5",
     "dash-ag-grid>=35.3,<36",
+    "plotly>=7.1,<8",
 ]
 
 [project.optional-dependencies]
@@ -30,6 +31,7 @@ packages = [
     "tape_dashboard.app.tabs.incomplete",
     "tape_dashboard.app.tabs.operations",
     "tape_dashboard.app.tabs.positions",
+    "tape_dashboard.charts",
     "tape_dashboard.data",
     "tape_dashboard.edits",
     "tape_dashboard.rules",

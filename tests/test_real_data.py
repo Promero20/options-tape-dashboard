@@ -123,3 +123,26 @@ def test_the_operations_grid_builds_for_the_whole_period(data_dir, dataset, tmp_
     assert len({r["id"] for r in rows}) == len(rows)
     assert all(r["destination"] in c.DESTINATIONS and r["destination"] != c.PENDING for r in rows)
     assert detail_content(state, rows[0]["id"])[0].children.endswith(rows[0]["id"])
+
+
+def test_the_charts_account_for_every_dollar_of_every_underlying(dataset):
+    from tape_dashboard.charts import aggregate as agg
+    from tape_dashboard.charts import figures
+
+    first, last = min(dataset.usable_dates), max(dataset.usable_dates)
+    items = apply_edits(dataset.operations(first, last, passing_only=True), Edits.empty())
+    items = [i for i in items if i.classification.destination != c.PENDING]
+    for symbol, _ in agg.symbol_counts(items):
+        mine = agg.for_symbol(items, symbol)
+        buckets = agg.net_buckets(mine, agg.EXPIRATION)
+        totals = agg.side_totals(mine)
+        levels = agg.wall_levels(mine)
+        charted = (sum(b.net + b.undetermined for b in buckets) + sum(l.premium for l in levels)
+                   + totals.undetermined_multi + totals.discarded)
+        assert charted == pytest.approx(sum(i.classification.premium for i in mine))
+
+        price = dataset.price_on_or_before(symbol, last)
+        assert price is not None
+        figures.net_figure(buckets, agg.EXPIRATION)
+        figures.net_figure(agg.net_buckets(mine, agg.STRIKE), agg.STRIKE, price[1])
+        figures.walls_figure(levels, price[1], price[0].isoformat())

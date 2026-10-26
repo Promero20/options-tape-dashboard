@@ -53,6 +53,17 @@ class Dataset:
                         chosen[op.id] = op
         return sorted(chosen.values(), key=lambda op: -op.premium)
 
+    def price_on_or_before(self, symbol, day):
+        """
+        Underlying price in the latest usable capture up to `day` whose level 1
+        has the symbol: (capture date, price), or None.
+        """
+        for d in sorted(self.usable_dates, reverse=True):
+            level1 = self.captures[d].level1
+            if d <= day and level1 is not None and symbol in level1.prices:
+                return d, level1.prices[symbol]
+        return None
+
     def repeated_ids(self):
         """IDs de operación que aparecen en más de una captura: {id: [fechas]}."""
         seen = {}
