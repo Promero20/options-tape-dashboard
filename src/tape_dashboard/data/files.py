@@ -70,3 +70,24 @@ def script_status(data_dir):
         return ScriptStatus(False, False, None, canonical)
     deployed = _sha256(deployed_path)
     return ScriptStatus(True, deployed == canonical, deployed, canonical)
+
+
+@dataclass(frozen=True)
+class DeclaredHash:
+    """Whether the pipeline's own declaration of the script hash matches the canonical copy."""
+    path: Path
+    exists: bool
+    matches: bool
+
+
+def declared_hash(path):
+    """
+    Checks a file in which the capture pipeline declares the SHA-256 it
+    expects for the level-3 script. The file format is not assumed: it
+    matches if the canonical hash appears anywhere in it.
+    """
+    path = Path(path)
+    if not path.is_file():
+        return DeclaredHash(path, False, False)
+    text = path.read_text(encoding="utf-8", errors="replace").lower()
+    return DeclaredHash(path, True, _sha256(CANONICAL_SCRIPT) in text)

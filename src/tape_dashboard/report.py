@@ -16,6 +16,7 @@ from pathlib import Path
 
 from .config import load_settings
 from .data.dataset import load_dataset
+from .data.files import declared_hash
 from .data.issues import INFO
 from .data.quality import level2_quality
 from .data.validation import validate_capture
@@ -30,7 +31,7 @@ def _table(headers, rows):
     return "\n".join([line(headers), line("-" * w for w in widths)] + [line(r) for r in rows])
 
 
-def render(dataset, edits=None, show_info=False):
+def render(dataset, edits=None, show_info=False, declared=None):
     edits = edits or Edits.empty()
     out = [f"Data folder: {dataset.data_dir}"]
     s = dataset.script
@@ -42,6 +43,14 @@ def render(dataset, edits=None, show_info=False):
         out.append(f"Pipeline script: DIFFERENT from pipeline/nivel3_agrupar.py "
                    f"(sha256 {s.deployed_sha256[:12]}… versus {s.canonical_sha256[:12]}…); "
                    f"see docs/level3-script.md")
+    if declared is not None:
+        if not declared.exists:
+            out.append(f"Declared script hash: file not found ({declared.path})")
+        elif declared.matches:
+            out.append(f"Declared script hash: matches ({declared.path.name})")
+        else:
+            out.append(f"Declared script hash: DOES NOT MATCH the canonical script ({declared.path.name}); "
+                       f"update it after deploying, see docs/level3-script.md")
 
     rows = []
     for day, c in dataset.captures.items():
@@ -115,7 +124,8 @@ def main(argv=None):
         print(f"The data folder does not exist: {data_dir}", file=sys.stderr)
         return 1
     edits = read_edits(settings.user_data_dir / FILE_NAME)
-    print(render(load_dataset(data_dir), edits, show_info=args.info))
+    declared = declared_hash(settings.expected_hash_file) if settings.expected_hash_file else None
+    print(render(load_dataset(data_dir), edits, show_info=args.info, declared=declared))
     return 0
 
 

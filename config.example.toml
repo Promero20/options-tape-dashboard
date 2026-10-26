@@ -1,5 +1,5 @@
 # Copy this file as config.toml (not under version control) to change the paths.
-# The TAPE_DATA_DIR and TAPE_USER_DATA_DIR environment variables take precedence.
+# The TAPE_DATA_DIR, TAPE_USER_DATA_DIR and TAPE_EXPECTED_HASH_FILE environment variables take precedence.
 # Relative paths are resolved from the repository root.
 
 [paths]
@@ -8,3 +8,9 @@ data_dir = "../tape_data"
 
 # The user's manual edits and positions. Not under version control.
 user_data_dir = "user_data"
+
+[pipeline]
+# Optional: file in which the capture pipeline declares the SHA-256 it expects for
+# nivel3_agrupar.py. If set, the dashboard warns when the canonical script's hash
+# does not appear in it (docs/decisions/0026-declared-script-hash-check.md).
+# expected_hash_file = "../tape_data/instructions.md"

@@ -24,3 +24,15 @@ def test_environment_variables_take_precedence(tmp_path):
     settings = load_settings(config_file=config, environ=environ)
     assert settings.data_dir == (tmp_path / "datos").resolve()
     assert settings.user_data_dir == (tmp_path / "usuario").resolve()
+
+
+def test_expected_hash_file_is_optional(tmp_path):
+    assert load_settings(config_file=tmp_path / "no-existe.toml", environ={}).expected_hash_file is None
+
+    config = tmp_path / "config.toml"
+    config.write_text('[pipeline]\nexpected_hash_file = "docs/instructions.md"\n', encoding="utf-8")
+    settings = load_settings(config_file=config, environ={})
+    assert settings.expected_hash_file == (REPO_ROOT / "docs" / "instructions.md").resolve()
+
+    settings = load_settings(config_file=config, environ={"TAPE_EXPECTED_HASH_FILE": str(tmp_path / "x.md")})
+    assert settings.expected_hash_file == (tmp_path / "x.md").resolve()

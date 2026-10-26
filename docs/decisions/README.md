@@ -29,6 +29,7 @@ One short entry per relevant decision: what was decided, why, and which alternat
 | [0023](0023-ui-stack.md) | Interface stack: Dash, dash-ag-grid and Plotly, local only | accepted |
 | [0024](0024-documentation-language.md) | Documentation in English; the pipeline's names stay in Spanish | accepted, partly superseded by 0025 |
 | [0025](0025-interface-and-new-code-in-english.md) | Interface, new code and stored values in English | accepted |
+| [0026](0026-declared-script-hash-check.md) | Optional check of the script hash declared by the pipeline | accepted |
 
 ## Pending decisions
 

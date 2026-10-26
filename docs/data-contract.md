@@ -162,5 +162,6 @@ To be defined in phase 6, in the same user-data folder.
 |---|---|---|---|
 | Pipeline data | `TAPE_DATA_DIR` | `[paths] data_dir` | `../tape_data` |
 | User data | `TAPE_USER_DATA_DIR` | `[paths] user_data_dir` | `./user_data` |
+| File where the pipeline declares the script hash (optional) | `TAPE_EXPECTED_HASH_FILE` | `[pipeline] expected_hash_file` | not set: no check |
 
-The environment variable takes precedence. The template is [`config.example.toml`](../config.example.toml).
+The environment variable takes precedence. Relative paths in `config.toml` are resolved from the repository root. The declared-hash check is described in [decision 0026](decisions/0026-declared-script-hash-check.md). The template is [`config.example.toml`](../config.example.toml).
