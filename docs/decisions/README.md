@@ -27,14 +27,15 @@ One short entry per relevant decision: what was decided, why, and which alternat
 | [0021](0021-direction-shown-in-the-list.md) | The list shows the classification's direction | accepted |
 | [0022](0022-call-put-combos-and-synthetics.md) | Call + put with different expirations, and synthetics, are discarded like risk reversals | accepted |
 | [0023](0023-ui-stack.md) | Interface stack: Dash, dash-ag-grid and Plotly, local only | accepted |
-| [0024](0024-documentation-language.md) | Documentation in English; the pipeline's names stay in Spanish | accepted |
+| [0024](0024-documentation-language.md) | Documentation in English; the pipeline's names stay in Spanish | accepted, partly superseded by 0025 |
+| [0025](0025-interface-and-new-code-in-english.md) | Interface, new code and stored values in English | accepted |
 
 ## Pending decisions
 
 - **Risk reversal**: should it be separated from straddles and strangles and sent to net directional? Today it is discarded, and so are synthetics and call + put combinations with different expirations ([0022](0022-call-put-combos-and-synthetics.md)).
 - **Threshold for prices below $1**: the script applies the 3M bracket to them; it stays that way while none appear (see the [business rules](../business-rules.md#1-premium-threshold-by-underlying-price)).
 - **Aggressiveness boundary in the script**: aligning its `direccion` column with the specification would change its output ([0017](0017-aggressiveness-boundary.md)).
-- **Language of code comments, docstrings and interface text**: still in Spanish ([0024](0024-documentation-language.md)).
+- **Comments and docstrings of the code written before phase 3**: still in Spanish ([0025](0025-interface-and-new-code-in-english.md)).
 - **Access from other devices**: it would need authentication first ([0023](0023-ui-stack.md)).
 
 ## Template

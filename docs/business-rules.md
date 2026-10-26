@@ -81,16 +81,16 @@ See [decision 0007](decisions/0007-operation-id-format.md).
 
 ## 5. Classifying operations
 
-Implementation: [`src/tape_dashboard/rules/`](../src/tape_dashboard/rules/). Each operation above the threshold goes to **a single destination** ([decision 0004](decisions/0004-one-destination-per-operation.md)), so no premium is counted twice. The destination values are in Spanish, as the code uses them:
+Implementation: [`src/tape_dashboard/rules/`](../src/tape_dashboard/rules/). Each operation above the threshold goes to **a single destination** ([decision 0004](decisions/0004-one-destination-per-operation.md)), so no premium is counted twice:
 
 | Destination | Where it shows |
 |---|---|
-| `neto` (net) | Net directional chart: signed premium (bull +, bear −) at its strike and expiration |
-| `paredes` (walls) | Walls chart: premium by sold strike, as support or resistance |
-| `indeterminada` (undetermined) | Single-leg without a clear side: its own marker on the net chart, at its strike and expiration |
-| `indeterminada multi-leg` | Separate total (gross premium) |
-| `descartada` (discarded) | Separate total (gross premium) |
-| `pendiente` (pending) | Tab 2, until the missing leg is completed |
+| `net` | Net directional chart: signed premium (bull +, bear −) at its strike and expiration |
+| `walls` | Walls chart: premium by sold strike, as support or resistance |
+| `undetermined` | Single-leg without a clear side: its own marker on the net chart, at its strike and expiration |
+| `undetermined multi-leg` | Separate total (gross premium) |
+| `discarded` | Separate total (gross premium) |
+| `pending` | Tab 2, until the missing leg is completed |
 
 ### Side of each leg
 
@@ -118,7 +118,7 @@ Aggressiveness is computed in floating point, so a trade at a quarter of the hal
 
 If a vertical has the same premium on both legs (neither debit nor credit), it goes to undetermined multi-leg.
 
-**Direction.** On the net chart, the sign gives it. On the walls chart, a sold put or a bull put spread is bullish (support) and a sold call or a bear call spread is bearish (resistance). Undetermined ones are `indeterminado`; discarded and pending ones have none. **This is the direction the list shows and edits**; the script's `direccion` column (taken only from the leg with the most premium) is kept as secondary data ([decision 0021](decisions/0021-direction-shown-in-the-list.md)).
+**Direction.** On the net chart, the sign gives it. On the walls chart, a sold put or a bull put spread is bullish (support) and a sold call or a bear call spread is bearish (resistance). Undetermined ones are `undetermined`; discarded and pending ones have none. **This is the direction the list shows and edits**; the script's `direccion` column (taken only from the leg with the most premium) is kept as secondary data ([decision 0021](decisions/0021-direction-shown-in-the-list.md)).
 
 ### Examples
 

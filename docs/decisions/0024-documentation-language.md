@@ -1,7 +1,7 @@
 # 0024. Documentation in English; the pipeline's names stay in Spanish
 
 - **Date:** 2026-10-21
-- **Status:** accepted
+- **Status:** accepted; the part about the interface and stored values is superseded by [0025](0025-interface-and-new-code-in-english.md)
 
 ## Context
 

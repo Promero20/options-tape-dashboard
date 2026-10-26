@@ -9,7 +9,7 @@ Manual edits (corrections of direction or operation type, and added legs) go in 
 
 ## Decision
 
-A single SQLite file, `ediciones.sqlite`, in the user-data folder (configurable and outside git), using the standard library's `sqlite3`. The schema is in the [data contract](../data-contract.md#manual-edits).
+A single SQLite file, `edits.sqlite` (named `ediciones.sqlite` before [0025](0025-interface-and-new-code-in-english.md)), in the user-data folder (configurable and outside git), using the standard library's `sqlite3`. The schema is in the [data contract](../data-contract.md#manual-edits).
 
 The report opens the file read-only and does not create it if it does not exist. Edits are applied on an in-memory snapshot, with pure functions that are tested without a database.
 

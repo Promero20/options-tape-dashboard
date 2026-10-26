@@ -25,7 +25,7 @@ applies the manual edits and classifies them.
 
 How those files are obtained is outside the scope of this repository. The business rules (thresholds, aggressiveness, grouping and classification) are in [docs/business-rules.md](docs/business-rules.md).
 
-File names, CSV column names and the level-3 script (`pipeline/nivel3_agrupar.py`) are in Spanish, as the pipeline produces and runs them. Code comments and interface text are still in Spanish as well ([decision 0024](docs/decisions/0024-documentation-language.md)).
+File names, CSV column names and the level-3 script (`pipeline/nivel3_agrupar.py`) are in Spanish, as the pipeline produces and runs them. The interface and the code written from phase 3 on are in English; comments in earlier code are still in Spanish ([decision 0025](docs/decisions/0025-interface-and-new-code-in-english.md)).
 
 ## Repository layout
 
