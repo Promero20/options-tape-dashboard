@@ -31,6 +31,8 @@ One short entry per relevant decision: what was decided, why, and which alternat
 | [0025](0025-interface-and-new-code-in-english.md) | Interface, new code and stored values in English | accepted |
 | [0026](0026-declared-script-hash-check.md) | Optional check of the script hash declared by the pipeline | accepted |
 | [0027](0027-editing-pop-up-without-extra-dependencies.md) | The editing pop-up uses plain Dash components and local CSS | accepted |
+| [0028](0028-in-the-money-walls.md) | In-the-money walls are shown, marked, and can be hidden | accepted |
+| [0029](0029-chart-panel-controls.md) | Chart panel: one shared date range, last month by default, and an underlying selector | accepted |
 
 ## Pending decisions
 

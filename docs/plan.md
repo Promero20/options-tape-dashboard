@@ -8,10 +8,11 @@ Each phase ends with the tests passing, the documentation up to date and a commi
 | 1 | Data layer: schemas, normalisation and operation reconstruction | **done** |
 | 2 | Classification, operation-type catalogue and manual edits (pure logic) | **done** |
 | 3 | Application and tab 1: list | **done** |
-| 4 | Tab 1: net directional and walls charts | pending |
+| 4 | Tab 1: net directional and walls charts | **done** |
 | 5 | Tab 2: incomplete legs | pending |
 | 6 | Tab 3: positions | pending |
 | 7 | SPY GEX (new input file and panel) | pending |
+| 8 | Visual polish: readability and look of the whole interface | pending |
 
 Phase 2 comes before the interface because the direction pop-up, the charts and tab 2 all need it. It is also the business logic with the most risk, and it is easier to test without a UI.
 
@@ -56,9 +57,17 @@ It also includes the script change that drops cancellations ([0015](decisions/00
 
 **Done when:** the interface's pure functions (ranges, rows, editing, warnings) and its controllers are tested on synthetic data; the app builds, serves its layout and answers its callbacks over HTTP; the list builds for the whole real period; and the server starts on 127.0.0.1 with the real data. ✔
 
-## Phases 4 to 7
+## Phase 4: net directional and walls charts
 
-- **4**: net directional and walls charts.
+- Chart data as pure functions (`tape_dashboard.charts.aggregate`) and Plotly figures (`charts.figures`), with the reference price from the dataset.
+- Chart panel in tab 1: underlying from the selected row or a drop-down, one date range for both charts (last month by default), net chart by expiration or strike, walls chart with an expiration filter ([0029](decisions/0029-chart-panel-controls.md)).
+- In-the-money walls marked and optionally hidden ([0028](decisions/0028-in-the-money-walls.md)).
+
+**Done when:** the aggregation, the figures and the panel's controllers are tested on synthetic data; every dollar of every real underlying lands in exactly one place of the charts; a correction moves premium between charts; and the charts are served over HTTP with the real data. ✔
+
+## Phases 5 to 8
+
 - **5**: tab 2, with a day selector, the list of incomplete operations above the threshold and a form with the operation type.
 - **6**: positions, history and P&L, with a model ready for a future read-only import from tastytrade.
 - **7**: SPY GEX file and its panel.
+- **8**: visual polish, once everything works: readability, layout and look of every tab. Until then, styling stays minimal.

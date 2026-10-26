@@ -28,12 +28,13 @@ flowchart LR
             ST[store<br/>SQLite]
             AP[apply<br/>manual legs, corrections, orphans]
         end
+        CH[tape_dashboard.charts<br/>aggregate + figures]
         subgraph app["tape_dashboard.app"]
             STATE[state<br/>dataset in memory, reload]
             W[warnings<br/>banner]
             subgraph tab1["tabs.operations"]
                 PURE[ranges + rows + editing<br/>pure functions]
-                CB[callbacks<br/>thin wrappers]
+                CB[callbacks + chart_callbacks<br/>thin wrappers]
             end
             TABS[tabs.incomplete, tabs.positions<br/>placeholders]
         end
@@ -59,6 +60,7 @@ flowchart LR
     H --> W
     AP --> CB
     PURE --> CB
+    CH --> CB
     CB -- corrections --> ST
     CB & W & TABS <--> B
     D & V & Q & AP --> REP
@@ -82,12 +84,14 @@ Anything that does not fit becomes an `Issue` attached to its file: errors (the 
 
 **Edits** (`tape_dashboard.edits`). `store` keeps corrections and manual legs in a SQLite file in the user-data folder. `apply` applies them on a snapshot, in the order the specification asks for: rebuild every operation, add the manual legs (recomputing with the script), classify with the corrections and, last, filter by threshold. It also detects orphan edits, which are never deleted. It provides the queries for tabs 1 and 2.
 
+**Charts** (`tape_dashboard.charts`). `aggregate` turns classified operations into what the charts show: net bars by expiration or strike, the separate totals and the walls by strike, with the ITM flag ([business rules](business-rules.md#6-charts)). It is pure Python, without Dash or Plotly. `figures` builds the Plotly figures from that. The reference price comes from `Dataset.price_on_or_before`.
+
 **Application** (`tape_dashboard.app`). A Dash app, started with `python -m tape_dashboard`, that only listens on 127.0.0.1 ([decision 0023](decisions/0023-ui-stack.md)):
 
 - `state.AppState` holds what every callback shares: the `Dataset`, loaded once at start-up and re-read by the Reload button, and the edits store, read again on every request so that a saved correction shows at once.
 - `warnings` gathers the notices of the banner: a missing data folder, the deployed script compared with the canonical one, the declared hash ([decision 0026](decisions/0026-declared-script-hash-check.md)), every `Issue` that is not informational, and orphan edits.
 - `layout` builds the page: header, banner and one tab per package in `tabs/`. Each tab exposes `TITLE`, `layout(state)` and `register(app, state)`.
-- In `tabs/operations`, the logic the interface adds is in pure functions: `ranges` (which capture dates a preset covers), `rows` (grid rows and columns), `editing` (which correction an operation accepts, and saving it). `view` builds the components and `callbacks` connects them. Each callback calls a controller that takes the state and plain values (`grid_content`, `detail_content`, `modal_action`), so the tests call the controllers without a browser.
+- In `tabs/operations`, the logic the interface adds is in pure functions: `ranges` (which capture dates a preset covers), `rows` (grid rows and columns), `editing` (which correction an operation accepts, and saving it). `view` builds the components; `callbacks` connects the list and the pop-up, and `chart_callbacks` the charts. Each callback calls a controller that takes the state and plain values (`grid_content`, `detail_content`, `modal_action`, `net_chart`, `walls_chart`…), so the tests call the controllers without a browser.
 - Two counters in `dcc.Store` (`data-version`, `edits-version`) tell the callbacks when to refresh: Reload increments the first, saving a correction the second. Grid rows carry a stable ID (`getRowId`), so a refresh updates them in place instead of rebuilding the grid.
 - The editing pop-up is plain Dash with local CSS: no component library or external stylesheet ([decision 0027](decisions/0027-editing-pop-up-without-extra-dependencies.md)).
 

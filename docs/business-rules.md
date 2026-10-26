@@ -154,3 +154,30 @@ A manual leg joins the operation as one more trade row: with the time and Trade 
 ### Anomalous size ratio
 
 A multi-leg whose largest leg has **10 times or more** the contracts of its smallest one is flagged for review ([decision 0012](decisions/0012-flag-anomalous-size-ratios.md)). In the real data, multi-legs above the threshold have ratios from 1 to 5.9, and then jump to 11.9 and more. It does not change the destination.
+
+## 6. Charts
+
+Implementation: [`src/tape_dashboard/charts/`](../src/tape_dashboard/charts/). The charts show one underlying over the chart panel's own range of capture dates, with the same operations as the list: above the threshold, with the manual edits applied, each operation once and without pending ones ([decision 0029](decisions/0029-chart-panel-controls.md)).
+
+### Net directional
+
+- One bar per expiration or per strike, to choose. They are the strike and expiration the classification assigns (section 5): the bought leg's strike for a debit vertical or a diagonal, and the nearest expiration for a diagonal.
+- Bull premium upwards and bear premium downwards, with a marker for the net (bull − bear) on each bar that has directional operations.
+- The premium of the undetermined single-legs, added up per bar, has its own marker. It is not part of the net.
+- Under the chart, two totals of gross premium: undetermined multi-legs and discarded operations.
+- By strike, a vertical line marks the reference price.
+
+### Walls
+
+- Premium of the operations in `walls` by sold strike, as support or resistance. The strike is on the vertical axis, so supports are expected below the price line and resistances above it.
+- **In-the-money walls** ([decision 0028](decisions/0028-in-the-money-walls.md)): a support with its strike above the price, or a resistance with its strike below it, using the price of the operation's own capture. At exactly the price it is not ITM. They have a lighter colour and can be hidden.
+- Filter by expiration; with none selected, all of them count.
+- A horizontal line marks the reference price.
+
+### Reference price
+
+The underlying's price in the latest capture up to the end of the range whose level 1 includes it, shown with that capture's date.
+
+### Every dollar in one place
+
+Each operation has a single destination, so its premium lands in exactly one place: a net bar, an undetermined marker, a wall or one of the two totals. The tests check it for every underlying in the real data.
