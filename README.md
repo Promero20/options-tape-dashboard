@@ -77,3 +77,7 @@ The repository contains no data: no CSV files, manual edits, positions or creden
 - [Level-3 script and its deployment](docs/level3-script.md)
 - [Decision log](docs/decisions/README.md)
 - [Phased plan](docs/plan.md)
+
+## License
+
+[MIT](LICENSE).
