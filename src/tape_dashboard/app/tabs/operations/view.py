@@ -1,9 +1,11 @@
-"""Layout of the operations tab: list on the left, underlying panel and SPY GEX on the right."""
+"""Layout of the operations tab: the list on the left; charts, selected operation and SPY GEX on the right."""
 
 import dash_ag_grid as dag
 from dash import dcc, html
 
-from .ranges import PRESETS, TODAY
+from ....charts.aggregate import EXPIRATION, STRIKE
+from ....charts.figures import empty_figure
+from .ranges import MONTH, PRESETS, TODAY
 from .rows import OPTIONAL_COLUMNS, ROW_CLASS_RULES, column_defs
 
 RANGE, DATES, RANGE_NOTE = "ops-range", "ops-dates", "ops-range-note"
@@ -15,6 +17,14 @@ STRATEGY_BOX, STRATEGY_INPUT = "ops-strategy-box", "ops-strategy"
 READ_ONLY_TEXT = "ops-read-only"
 SAVE, CLEAR, CLOSE = "ops-save", "ops-clear", "ops-close"
 EDITING = "ops-editing"
+SYMBOL = "ops-symbol"
+CHART_RANGE, CHART_DATES, CHART_NOTE = "ops-chart-range", "ops-chart-dates", "ops-chart-note"
+AXIS, NET_GRAPH, NET_TOTALS = "ops-net-axis", "ops-net-graph", "ops-net-totals"
+WALL_EXPIRATIONS, SHOW_ITM, WALLS_GRAPH = "ops-wall-expirations", "ops-show-itm", "ops-walls-graph"
+ITM = "itm"
+
+NO_SYMBOL = "Select an operation in the list or pick an underlying."
+GRAPH_CONFIG = {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d"]}
 
 HIDDEN, SHOWN = {"display": "none"}, {"display": "block"}
 
@@ -33,7 +43,48 @@ def legs_table(rows):
 
 
 def empty_detail():
-    return [html.H4("Underlying"), html.P("Select an operation in the list to see its legs.", className="muted")]
+    return [html.H4("Selected operation"), html.P("Select an operation in the list to see its legs.",
+                                                  className="muted")]
+
+
+def range_selector(radio_id, dates_id, value):
+    return [
+        dcc.RadioItems(id=radio_id, options=[{"label": label, "value": v} for v, label in PRESETS],
+                       value=value, inline=True, className="choices"),
+        dcc.DatePickerRange(id=dates_id, display_format="YYYY-MM-DD", disabled=True, clearable=True,
+                            first_day_of_week=1),
+    ]
+
+
+def charts_panel():
+    """Net directional and walls charts of one underlying, with their own date range (decision 0029)."""
+    return html.Div(className="panel charts", children=[
+        html.Div(className="toolbar", children=[
+            html.H4("Underlying charts"),
+            dcc.Dropdown(id=SYMBOL, options=[], placeholder="Underlying", clearable=False,
+                         className="symbol-picker"),
+        ]),
+        html.Div(className="toolbar", children=range_selector(CHART_RANGE, CHART_DATES, MONTH)),
+        html.Div(id=CHART_NOTE, className="range-note"),
+        dcc.Tabs(value="net", className="inner-tabs", children=[
+            dcc.Tab(label="Net directional", value="net", children=[
+                dcc.RadioItems(id=AXIS, value=EXPIRATION, inline=True, className="choices axis",
+                               options=[{"label": "By expiration", "value": EXPIRATION},
+                                        {"label": "By strike", "value": STRIKE}]),
+                dcc.Graph(id=NET_GRAPH, figure=empty_figure(NO_SYMBOL), config=GRAPH_CONFIG),
+                html.Div(id=NET_TOTALS, className="summary"),
+            ]),
+            dcc.Tab(label="Walls", value="walls", children=[
+                html.Div(className="toolbar", children=[
+                    dcc.Dropdown(id=WALL_EXPIRATIONS, options=[], value=[], multi=True,
+                                 placeholder="All expirations", className="expiration-picker"),
+                    dcc.Checklist(id=SHOW_ITM, options=[{"label": "Show ITM walls", "value": ITM}],
+                                  value=[ITM], inline=True, className="choices"),
+                ]),
+                dcc.Graph(id=WALLS_GRAPH, figure=empty_figure(NO_SYMBOL), config=GRAPH_CONFIG),
+            ]),
+        ]),
+    ])
 
 
 def modal():
@@ -62,10 +113,7 @@ def layout(state):
     return html.Div(className="ops-tab", children=[
         html.Div(className="panel ops-list", children=[
             html.Div(className="toolbar", children=[
-                dcc.RadioItems(id=RANGE, options=[{"label": label, "value": value} for value, label in PRESETS],
-                               value=TODAY, inline=True, className="choices"),
-                dcc.DatePickerRange(id=DATES, display_format="YYYY-MM-DD", disabled=True, clearable=True,
-                                    first_day_of_week=1),
+                *range_selector(RANGE, DATES, TODAY),
                 dcc.Checklist(id=COLUMNS, options=[{"label": label, "value": field}
                                                    for field, label in OPTIONAL_COLUMNS],
                               value=[], inline=True, className="choices optional-columns"),
@@ -89,6 +137,7 @@ def layout(state):
             html.Div(id=SUMMARY, className="summary"),
         ]),
         html.Div(className="ops-side", children=[
+            charts_panel(),
             html.Div(id=DETAIL, className="panel", children=empty_detail()),
             html.Div(className="panel placeholder", children=[
                 html.H4("SPY GEX"),

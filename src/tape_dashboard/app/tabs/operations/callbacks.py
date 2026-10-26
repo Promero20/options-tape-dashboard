@@ -50,7 +50,6 @@ def detail_content(state, operation_id):
         html.Ul([html.Li(f) for f in facts]),
         html.Ul([html.Li(n) for n in notes], className="notes") if notes else None,
         view.legs_table(leg_rows(item)),
-        html.P(f"Net directional and walls charts for {op.symbol}: coming in phase 4.", className="muted"),
     ]
 
 
