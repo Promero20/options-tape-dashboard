@@ -1,13 +1,13 @@
 """
-Informe de la carpeta de datos por consola.
+Command-line report on the data folder.
 
-    python -m tape_dashboard.report [--data-dir RUTA] [--info]
+    python -m tape_dashboard.report [--data-dir PATH] [--info]
 
-Muestra qué ficheros hay, con qué variante de esquema, qué días se pueden
-reconstruir, cómo se compara la reconstrucción con el nivel 3 guardado, los
-indicadores de calidad, el reparto de operaciones por destino (con las
-ediciones manuales), las ediciones huérfanas y todos los avisos. Solo lee la
-carpeta de datos y el fichero de ediciones.
+Shows which files there are and their schema variant, which days can be
+rebuilt, how each reconstruction compares with the stored level 3, the
+quality indicators, the breakdown of operations by destination (with manual
+edits applied), orphan edits and every warning. It only reads the data
+folder and the edits file.
 """
 
 import argparse
@@ -32,38 +32,38 @@ def _table(headers, rows):
 
 def render(dataset, edits=None, show_info=False):
     edits = edits or Edits.empty()
-    out = [f"Carpeta de datos: {dataset.data_dir}"]
+    out = [f"Data folder: {dataset.data_dir}"]
     s = dataset.script
     if not s.found:
-        out.append("Script del pipeline: no está en la carpeta de datos")
+        out.append("Pipeline script: not found in the data folder")
     elif s.matches:
-        out.append("Script del pipeline: coincide con pipeline/nivel3_agrupar.py")
+        out.append("Pipeline script: matches pipeline/nivel3_agrupar.py")
     else:
-        out.append(f"Script del pipeline: DISTINTO de pipeline/nivel3_agrupar.py "
-                   f"(sha256 {s.deployed_sha256[:12]}… frente a {s.canonical_sha256[:12]}…); "
-                   f"ver docs/level3-script.md")
+        out.append(f"Pipeline script: DIFFERENT from pipeline/nivel3_agrupar.py "
+                   f"(sha256 {s.deployed_sha256[:12]}… versus {s.canonical_sha256[:12]}…); "
+                   f"see docs/level3-script.md")
 
     rows = []
     for day, c in dataset.captures.items():
         v = validate_capture(c)
         rows.append([
             day.isoformat(),
-            (c.level1.variant or "nueva") if c.level1 else ("error" if c.files.level1 else "—"),
-            (c.level2.variant or "nueva") if c.level2 else ("error" if c.files.level2 else "—"),
-            (v.variant or "nueva") if c.files.level3 else "—",
+            (c.level1.variant or "new") if c.level1 else ("error" if c.files.level1 else "—"),
+            (c.level2.variant or "new") if c.level2 else ("error" if c.files.level2 else "—"),
+            (v.variant or "new") if c.files.level3 else "—",
             c.n_trades if c.usable else "—",
             len(c.operations) if c.usable else "—",
             len(c.passing) if c.usable else "—",
             v.status + (f" ({v.detail})" if v.detail else ""),
         ])
     usable = dataset.usable_dates
-    out += ["", f"Capturas: {len(dataset.captures)}, reconstruibles: {len(usable)}",
-            _table(["captura", "nivel1", "nivel2", "nivel3", "trades", "grupos", "≥ umbral",
-                    "nivel 3 guardado"], rows)]
+    out += ["", f"Captures: {len(dataset.captures)}, rebuildable: {len(usable)}",
+            _table(["capture", "level1", "level2", "level3", "trades", "groups", "≥ threshold",
+                    "stored level 3"], rows)]
 
     repeated = dataset.repeated_ids()
-    out += ["", f"Operaciones en más de una captura: {len(repeated)}"
-                + (" (en un rango de varios días cuenta la captura más reciente)" if repeated else "")]
+    out += ["", f"Operations in more than one capture: {len(repeated)}"
+                + (" (in a multi-day range the most recent capture counts)" if repeated else "")]
     for op_id, days in list(repeated.items())[:10]:
         out.append(f"  {op_id}: {', '.join(d.isoformat() for d in days)}")
 
@@ -72,9 +72,9 @@ def render(dataset, edits=None, show_info=False):
         q = level2_quality(dataset.captures[day].level2)
         q_rows.append([day.isoformat(), q.trades, q.crossed_quotes, q.cancellations,
                        q.identical_rows, q.size_ten, q.without_aggressiveness])
-    out += ["", "Calidad del nivel 2 (informativo, no altera la agrupación)",
-            _table(["captura", "trades", "bid>ask", "cancelaciones", "filas idénticas",
-                    "tamaño 10", "sin agresividad"], q_rows)]
+    out += ["", "Level-2 quality (informational, does not change the grouping)",
+            _table(["capture", "trades", "bid>ask", "cancellations", "identical rows",
+                    "size 10", "no aggressiveness"], q_rows)]
 
     d_rows, totals = [], dict.fromkeys(DESTINATIONS, 0)
     flagged_total = 0
@@ -90,29 +90,29 @@ def render(dataset, edits=None, show_info=False):
         flagged_total += flagged
         d_rows.append([day.isoformat(), *counts.values(), flagged])
     d_rows.append(["total", *totals.values(), flagged_total])
-    out += ["", "Operaciones por encima del umbral, por destino (con las ediciones manuales)",
-            _table(["captura", *DESTINATIONS, "ratio anómalo"], d_rows)]
+    out += ["", "Operations above the threshold, by destination (with manual edits)",
+            _table(["capture", *DESTINATIONS, "anomalous ratio"], d_rows)]
 
     lost = orphans(dataset, edits)
-    out += ["", f"Ediciones huérfanas (su operación ya no existe; no se borran): {len(lost)}"]
+    out += ["", f"Orphan edits (their operation no longer exists; never deleted): {len(lost)}"]
     out += [f"  {o.kind} {o.operation_id}: {o.detail}" for o in lost]
 
     issues = [i for i in dataset.issues if show_info or i.severity != INFO]
-    out += ["", f"Avisos ({len(issues)}{'' if show_info else ', sin los informativos; --info para verlos'}):"]
-    out += [f"  {i}" for i in issues] or ["  ninguno"]
+    out += ["", f"Warnings ({len(issues)}{'' if show_info else ', informational ones hidden; use --info'}):"]
+    out += [f"  {i}" for i in issues] or ["  none"]
     return "\n".join(out)
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Informe de la carpeta de datos")
-    parser.add_argument("--data-dir", type=Path, help="carpeta de datos (por defecto, la configurada)")
-    parser.add_argument("--info", action="store_true", help="mostrar también los avisos informativos")
+    parser = argparse.ArgumentParser(description="Report on the data folder")
+    parser.add_argument("--data-dir", type=Path, help="data folder (default: the configured one)")
+    parser.add_argument("--info", action="store_true", help="also show informational warnings")
     args = parser.parse_args(argv)
 
     settings = load_settings()
     data_dir = args.data_dir or settings.data_dir
     if not data_dir.is_dir():
-        print(f"No existe la carpeta de datos: {data_dir}", file=sys.stderr)
+        print(f"The data folder does not exist: {data_dir}", file=sys.stderr)
         return 1
     edits = read_edits(settings.user_data_dir / FILE_NAME)
     print(render(load_dataset(data_dir), edits, show_info=args.info))

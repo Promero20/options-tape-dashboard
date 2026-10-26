@@ -18,14 +18,14 @@ from . import schemas
 from .loading import read_csv
 from .reconstruction import reconstruct_capture
 
-IDENTICAL = "idéntico"                     # byte a byte
-PREVIOUS_VERSION = "versión anterior"      # idéntico al script previo, que no quitaba cancelaciones
-LABEL_ONLY = "equivalente"                 # solo cambia la etiqueta single_leg antigua
-OLD_FORMAT = "formato antiguo"             # versión anterior del script con otras columnas
-DIFFERENT = "distinto"                     # mismo formato, contenido distinto: revisar
-NO_LEVEL3 = "sin nivel 3"
-LEVEL3_WITHOUT_LEVEL2 = "nivel 3 sin nivel 2"
-NOT_RECONSTRUCTED = "no reconstruido"      # hay nivel 3 pero el día no se pudo reconstruir
+IDENTICAL = "identical"                    # byte a byte
+PREVIOUS_VERSION = "previous version"     # idéntico al script previo, que no quitaba cancelaciones
+LABEL_ONLY = "equivalent"                 # solo cambia la etiqueta single_leg antigua
+OLD_FORMAT = "old format"                 # versión anterior del script con otras columnas
+DIFFERENT = "different"                   # mismo formato, contenido distinto: revisar
+NO_LEVEL3 = "no level 3"
+LEVEL3_WITHOUT_LEVEL2 = "level 3 without level 2"
+NOT_RECONSTRUCTED = "not rebuilt"         # hay nivel 3 pero el día no se pudo reconstruir
 
 
 @dataclass(frozen=True)
@@ -61,8 +61,8 @@ def validate_capture(capture):
         level2_empty = capture.files.level2 is None or (
             capture.level2 is not None and not capture.level2.rows)
         if level2_empty:
-            return Validation(LEVEL3_WITHOUT_LEVEL2, f"{len(stored_rows)} operaciones guardadas", variant)
-        return Validation(NOT_RECONSTRUCTED, f"{len(stored_rows)} operaciones guardadas", variant)
+            return Validation(LEVEL3_WITHOUT_LEVEL2, f"{len(stored_rows)} stored operations", variant)
+        return Validation(NOT_RECONSTRUCTED, f"{len(stored_rows)} stored operations", variant)
 
     # La reconstrucción actual y, si la captura tiene cancelaciones, la del
     # script anterior al 19/10/2026, que las agrupaba como trades.
@@ -76,21 +76,21 @@ def validate_capture(capture):
             rebuilt = _reconstructed_csv(version, Path(folder) / str(i))
             if rebuilt.read_bytes() == stored_bytes:
                 if version is capture:
-                    return Validation(IDENTICAL, f"{len(stored_rows)} operaciones", variant)
-                return Validation(PREVIOUS_VERSION, f"{len(stored_rows)} operaciones; generado antes de "
-                                                    f"quitar las cancelaciones", variant)
+                    return Validation(IDENTICAL, f"{len(stored_rows)} operations", variant)
+                return Validation(PREVIOUS_VERSION, f"{len(stored_rows)} operations; produced before "
+                                                    f"cancellations were dropped", variant)
             with open(rebuilt, encoding="utf-8", newline="") as f:
                 rebuilt_rows.append(list(csv.DictReader(f)))
 
     if tuple(fieldnames) != schemas.LEVEL3_CURRENT:
-        return Validation(OLD_FORMAT, f"{len(stored_rows)} operaciones guardadas, "
-                                      f"{len(rebuilt_rows[0])} reconstruidas", variant)
+        return Validation(OLD_FORMAT, f"{len(stored_rows)} stored operations, "
+                                      f"{len(rebuilt_rows[0])} rebuilt", variant)
     for rows in rebuilt_rows:
         if [_old_label(r) for r in rows] == stored_rows:
-            return Validation(LABEL_ONLY, f"{len(stored_rows)} operaciones; solo cambia "
-                                          f"'single_leg' → 'single_leg_call/put'", variant)
+            return Validation(LABEL_ONLY, f"{len(stored_rows)} operations; only "
+                                          f"'single_leg' → 'single_leg_call/put' differs", variant)
     rebuilt_rows = rebuilt_rows[0]
     differing = sum(1 for a, b in zip(rebuilt_rows, stored_rows) if _old_label(a) != _old_label(b))
     differing += abs(len(rebuilt_rows) - len(stored_rows))
-    return Validation(DIFFERENT, f"{differing} filas distintas ({len(stored_rows)} guardadas, "
-                                 f"{len(rebuilt_rows)} reconstruidas)", variant)
+    return Validation(DIFFERENT, f"{differing} different rows ({len(stored_rows)} stored, "
+                                 f"{len(rebuilt_rows)} rebuilt)", variant)

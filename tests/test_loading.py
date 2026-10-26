@@ -75,7 +75,7 @@ def test_level1_new_variant_is_loaded_with_a_warning(tmp_path):
     data = load_level1(path)
     assert data.variant is None
     assert data.rows
-    assert any("variante de encabezado nueva" in w and "columna_nueva" in w for w in warnings(data))
+    assert any("new header variant" in w and "columna_nueva" in w for w in warnings(data))
 
 
 def test_unparseable_values_are_counted_not_hidden(tmp_path):
@@ -92,7 +92,7 @@ def test_unparseable_values_are_counted_not_hidden(tmp_path):
 
     data = load_level1(path)
     assert data.rows[0]["iv"] is None
-    assert "2 valores no interpretables en 'iv'" in warnings(data)
+    assert "2 unparseable values in 'iv'" in warnings(data)
 
 
 # --- Nivel 2 -----------------------------------------------------------------

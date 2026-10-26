@@ -68,14 +68,14 @@ def test_level2_without_trades_is_not_usable(folder):
     write_level2(folder / "nivel2_trades_20261013.csv", [])
     capture = capture_for(folder, D13)
     assert not capture.usable
-    assert any("sin trades" in m for m in messages(capture.issues, WARNING))
+    assert any("no trades" in m for m in messages(capture.issues, WARNING))
 
 
 def test_level2_without_level1_is_an_error(folder):
     write_level2(folder / "nivel2_trades_20261013.csv", scenario())
     capture = capture_for(folder, D13)
     assert not capture.usable
-    assert any("nivel 1" in m for m in messages(capture.issues, ERROR))
+    assert any("level 1" in m for m in messages(capture.issues, ERROR))
 
 
 def test_schema_error_names_the_file_and_the_missing_columns(folder):
@@ -90,9 +90,9 @@ def test_schema_error_names_the_file_and_the_missing_columns(folder):
 
 
 def test_unrecognised_csv_is_reported(folder):
-    (folder / "candidatos_pata_faltante_20261013.csv").write_text("a,b\n", encoding="utf-8")
+    (folder / "unexpected_20261013.csv").write_text("a,b\n", encoding="utf-8")
     _, issues = discover(folder)
-    assert messages(issues, WARNING) == ["candidatos_pata_faltante_20261013.csv: CSV no reconocido: no se carga"]
+    assert messages(issues, WARNING) == ["unexpected_20261013.csv: unrecognised CSV: not loaded"]
 
 
 # --- Varias capturas -------------------------------------------------------

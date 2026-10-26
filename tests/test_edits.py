@@ -40,10 +40,10 @@ def operation(dataset, op_id):
 def test_overrides_round_trip(store):
     store.set_direction("A", c.BULL)
     store.set_strategy("B", "bull_call")
-    store.set_strategy("A", "no_lo_se")          # sustituye a la dirección
+    store.set_strategy("A", "unknown")          # sustituye a la dirección
     store.set_direction("C", c.BEAR)
     store.clear_override("C")
-    assert store.snapshot().overrides == {"A": Override(strategy="no_lo_se"),
+    assert store.snapshot().overrides == {"A": Override(strategy="unknown"),
                                           "B": Override(strategy="bull_call")}
 
 
@@ -113,7 +113,7 @@ def test_manual_leg_repeating_a_contract_is_reported_not_applied(dataset):
     edits = Edits({}, {op.id: [ManualLeg(1, op.id, "call", 120.0, "2026-12-18", 1.5, 3000)]})
     [result] = apply_edits([op], edits)
     assert result.operation is op and result.manual_legs == ()
-    assert "repite el contrato" in result.problems[0]
+    assert "repeats the operation" in result.problems[0]
 
 
 # --- Pestañas ------------------------------------------------------------------------
@@ -169,7 +169,7 @@ def test_edits_for_missing_operations_are_orphans_and_kept(dataset, store):
     store.add_manual_leg("20261013-ZZZ-11:00:00.000-MLET", "put", 50, "2026-12-18", 2, 100)
     found = orphans(dataset, store.snapshot())
     assert [(o.kind, o.operation_id) for o in found] == [
-        ("corrección", "20261013-ZZZ-10:00:00.000-AUTO"),
-        ("pata manual", "20261013-ZZZ-11:00:00.000-MLET"),
+        ("correction", "20261013-ZZZ-10:00:00.000-AUTO"),
+        ("manual leg", "20261013-ZZZ-11:00:00.000-MLET"),
     ]
     assert len(store.snapshot().overrides) == 2     # nada se borra

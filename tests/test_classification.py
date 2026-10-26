@@ -45,7 +45,7 @@ def test_debit_vertical_example_from_the_specification():
     # bear put: 10 M en la put 100 comprada y 5 M en la put 90 vendida:
     # strike 100, −5 M (bajista)
     r = classify(op(leg("put", 100, NEAR, 10 * M, 0.8), leg("put", 90, NEAR, 5 * M, -0.8)))
-    assert (r.destination, r.structure, r.direction) == (c.NET, "vertical de débito", c.BEAR)
+    assert (r.destination, r.structure, r.direction) == (c.NET, "debit vertical", c.BEAR)
     assert (r.strike, r.expiration, r.premium) == (100.0, NEAR, -5 * M)
 
 
@@ -62,13 +62,13 @@ def test_debit_call_vertical_is_bullish():
 def test_credit_vertical_goes_to_walls_at_the_sold_strike(option_type, sold_strike, bought_strike, wall, direction):
     r = classify(op(leg(option_type, sold_strike, NEAR, 6 * M, -0.9),
                     leg(option_type, bought_strike, NEAR, 2 * M, 0.9)))
-    assert (r.destination, r.structure, r.wall, r.direction) == (c.WALLS, "vertical de crédito", wall, direction)
+    assert (r.destination, r.structure, r.wall, r.direction) == (c.WALLS, "credit vertical", wall, direction)
     assert (r.strike, r.premium) == (float(sold_strike), 4 * M)
 
 
 def test_debit_diagonal_goes_to_net_with_the_nearest_expiration():
     r = classify(op(leg("put", 140, NEAR, 1.7 * M, 0.9), leg("put", 145, FAR, 0.1 * M, -0.9)))
-    assert (r.destination, r.structure, r.direction) == (c.NET, "diagonal de débito", c.BEAR)
+    assert (r.destination, r.structure, r.direction) == (c.NET, "debit diagonal", c.BEAR)
     assert (r.strike, r.expiration, r.premium) == (140.0, NEAR, pytest.approx(-1.6 * M))
 
 
@@ -76,7 +76,7 @@ def test_credit_diagonal_takes_the_direction_of_the_dominant_leg():
     # call lejana 125 comprada (1 M) y call cercana 130 vendida (1,5 M):
     # neto en el strike comprado, expiración cercana, bajista por 0,5 M
     r = classify(op(leg("call", 125, FAR, 1.0 * M, 0.9), leg("call", 130, NEAR, 1.5 * M, -0.9)))
-    assert (r.destination, r.structure, r.direction) == (c.NET, "diagonal de crédito", c.BEAR)
+    assert (r.destination, r.structure, r.direction) == (c.NET, "credit diagonal", c.BEAR)
     assert (r.strike, r.expiration, r.premium) == (125.0, NEAR, pytest.approx(-0.5 * M))
 
 
@@ -96,7 +96,7 @@ def test_multi_leg_with_an_undetermined_leg():
 @pytest.mark.parametrize("agr", [0.9, -0.9])
 def test_two_legs_on_the_same_side_are_undetermined(agr):
     r = classify(op(leg("call", 100, NEAR, 3 * M, agr), leg("call", 110, NEAR, 1 * M, agr)))
-    assert (r.destination, r.reason) == (c.UNDETERMINED_MULTI, "las dos patas del mismo lado")
+    assert (r.destination, r.reason) == (c.UNDETERMINED_MULTI, "both legs on the same side")
 
 
 def test_equal_debit_and_credit_is_undetermined():
@@ -111,12 +111,12 @@ def test_equal_debit_and_credit_is_undetermined():
     ([leg("call", 100, NEAR, 1 * M, 0.9), leg("put", 100, NEAR, 2 * M, 0.9)], "straddle"),
     ([leg("call", 110, NEAR, 1 * M, -0.9), leg("put", 90, NEAR, 2 * M, -0.9)], "strangle"),
     ([leg("call", 110, NEAR, 1 * M, 0.9), leg("put", 90, NEAR, 2 * M, -0.9)], "risk reversal"),
-    ([leg("call", 100, NEAR, 1 * M, 0.9), leg("put", 100, NEAR, 2 * M, -0.9)], "sintético"),
-    ([leg("call", 110, NEAR, 1 * M, 0.9), leg("put", 90, FAR, 2 * M, -0.9)], "call + put con distinta expiración"),
+    ([leg("call", 100, NEAR, 1 * M, 0.9), leg("put", 100, NEAR, 2 * M, -0.9)], "synthetic"),
+    ([leg("call", 110, NEAR, 1 * M, 0.9), leg("put", 90, FAR, 2 * M, -0.9)], "call + put with different expirations"),
     # se descarta aunque algún lado sea indeterminado
-    ([leg("call", 100, NEAR, 1 * M, 0.1), leg("put", 100, NEAR, 2 * M, 0.9)], "straddle o sintético"),
+    ([leg("call", 100, NEAR, 1 * M, 0.1), leg("put", 100, NEAR, 2 * M, 0.9)], "straddle or synthetic"),
     ([leg("call", 100, NEAR, 1 * M, 0.9), leg("call", 105, NEAR, 2 * M, -0.9),
-      leg("call", 110, NEAR, 1 * M, 0.9)], "3 patas"),
+      leg("call", 110, NEAR, 1 * M, 0.9)], "3 legs"),
 ])
 def test_discarded_structures(legs, structure):
     r = classify(op(*legs))
@@ -126,7 +126,7 @@ def test_discarded_structures(legs, structure):
 
 def test_stock_option_is_discarded_even_if_incomplete():
     r = classify(op(leg("call", 100, NEAR, 5 * M, 0.9), stock_option=True, incomplete=True))
-    assert (r.destination, r.structure) == (c.DISCARDED, "con acciones")
+    assert (r.destination, r.structure) == (c.DISCARDED, "with stock")
 
 
 def test_incomplete_legs_are_pending():
@@ -159,7 +159,7 @@ def test_strategy_override_fixes_the_sides():
 
 def test_unknown_strategy_keeps_it_undetermined():
     r = classify(op(leg("call", 100, NEAR, 3 * M, 0.9), leg("call", 110, NEAR, 1 * M, -0.9)),
-                 Override(strategy="no_lo_se"))
+                 Override(strategy="unknown"))
     assert (r.destination, r.manual) == (c.UNDETERMINED_MULTI, True)
 
 
@@ -167,7 +167,7 @@ def test_override_that_no_longer_fits_is_ignored_with_a_warning():
     r = classify(op(leg("call", 100, NEAR, 3 * M, 0.9), leg("call", 110, NEAR, 1 * M, -0.9)),
                  Override(strategy="bull_put"))
     assert (r.destination, r.manual) == (c.NET, False)
-    assert "no encaja" in r.warnings[0]
+    assert "no longer fits" in r.warnings[0]
 
 
 def test_override_does_not_complete_pending_operations():

@@ -43,7 +43,7 @@ def _manual_trade_row(operation, leg):
                   f"{leg.strike:.2f}")
     contract = build_contract_symbol(operation.symbol, leg.exp_date, leg.strike, leg.option_type)
     if any(l["contract_symbol"] == contract for l in operation.legs):
-        raise ValueError(f"la pata manual {leg.id} repite el contrato {contract} de la operación")
+        raise ValueError(f"manual leg {leg.id} repeats the operation's contract {contract}")
     return {
         "symbol": operation.symbol, "contract_symbol": contract, "type": option_type,
         "strike": strike, "exp_date": leg.exp_date, "Time": first["Time"],
@@ -103,7 +103,7 @@ def pending_operations(dataset, edits, day):
 
 @dataclass(frozen=True)
 class Orphan:
-    kind: str           # "corrección" o "pata manual"
+    kind: str           # "correction" o "manual leg"
     operation_id: str
     detail: str
 
@@ -114,10 +114,10 @@ def orphans(dataset, edits):
     found = []
     for op_id, override in sorted(edits.overrides.items()):
         if op_id not in known:
-            found.append(Orphan("corrección", op_id, override.direction or override.strategy))
+            found.append(Orphan("correction", op_id, override.direction or override.strategy))
     for op_id, legs in sorted(edits.manual_legs.items()):
         if op_id not in known:
             for leg in legs:
-                found.append(Orphan("pata manual", op_id,
-                                    f"{leg.option_type} {leg.strike:g} {leg.exp_date} ×{leg.size} a {leg.price:g}"))
+                found.append(Orphan("manual leg", op_id,
+                                    f"{leg.option_type} {leg.strike:g} {leg.exp_date} ×{leg.size} at {leg.price:g}"))
     return found

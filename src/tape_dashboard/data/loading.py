@@ -26,8 +26,8 @@ class SchemaError(Exception):
         self.missing = list(missing)
         self.available = list(available)
         super().__init__(
-            f"{self.file}: faltan columnas obligatorias: {', '.join(self.missing)}. "
-            f"Columnas del fichero: {', '.join(self.available) or '(ninguna)'}")
+            f"{self.file}: missing required columns: {', '.join(self.missing)}. "
+            f"File columns: {', '.join(self.available) or '(none)'}")
 
 
 def read_csv(path):
@@ -42,11 +42,11 @@ def _header_issues(path, match):
     if match.variant is None:
         detail = []
         if match.missing_optional:
-            detail.append(f"faltan columnas opcionales: {', '.join(match.missing_optional)}")
+            detail.append(f"missing optional columns: {', '.join(match.missing_optional)}")
         if match.unknown:
-            detail.append(f"columnas desconocidas (no se cargan): {', '.join(match.unknown)}")
+            detail.append(f"unknown columns (not loaded): {', '.join(match.unknown)}")
         issues.append(Issue(WARNING, Path(path).name,
-                            "variante de encabezado nueva" + (f"; {'; '.join(detail)}" if detail else "")))
+                            "new header variant" + (f"; {'; '.join(detail)}" if detail else "")))
     return issues
 
 
@@ -73,7 +73,7 @@ class _Parser:
             return None
 
     def issues(self, path):
-        return [Issue(WARNING, Path(path).name, f"{n} valores no interpretables en '{col}'")
+        return [Issue(WARNING, Path(path).name, f"{n} unparseable values in '{col}'")
                 for col, n in sorted(self.failures.items())]
 
 
@@ -177,7 +177,7 @@ def load_level1(path):
 
     rebuilt = "contract_symbol" not in m
     if rebuilt:
-        issues.append(Issue(INFO, Path(path).name, "sin columna de contrato: se reconstruye"))
+        issues.append(Issue(INFO, Path(path).name, "no contract column: it is rebuilt"))
     return Level1Data(Path(path), match.variant, rows, prices, rebuilt, issues + parse.issues(path))
 
 
@@ -230,9 +230,9 @@ def load_level2(path):
 
     name = Path(path).name
     if reformatted_dates:
-        issues.append(Issue(INFO, name, f"fecha_consultada en formato MM/DD/YYYY: "
-                                        f"{reformatted_dates} filas normalizadas a ISO"))
+        issues.append(Issue(INFO, name, f"fecha_consultada as MM/DD/YYYY: "
+                                        f"{reformatted_dates} rows normalised to ISO"))
     if trimmed_exchanges:
-        issues.append(Issue(INFO, name, f"{trimmed_exchanges} códigos de exchange con espacios o "
-                                        f"saltos de línea: recortados"))
+        issues.append(Issue(INFO, name, f"{trimmed_exchanges} exchange codes with spaces or "
+                                        f"line breaks: trimmed"))
     return Level2Data(Path(path), match.variant, canonical, rows, issues + parse.issues(path))

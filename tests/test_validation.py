@@ -80,7 +80,7 @@ def test_different_content(folder, script_output):
     store(folder, out.getvalue().encode("utf-8"))
     result = validate(folder)
     assert result.status == validation.DIFFERENT
-    assert result.detail.startswith("1 filas distintas")
+    assert result.detail.startswith("1 different rows")
 
 
 def test_without_level3(folder):

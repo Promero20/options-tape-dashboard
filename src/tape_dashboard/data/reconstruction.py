@@ -82,18 +82,18 @@ def reconstruct_capture(files, remove_cancellations=True):
         capture.level2 = _load(load_level2, files.level2, capture)
 
     if files.level2 is None:
-        capture.issues.append(Issue(INFO, None, f"captura {day}: sin nivel 2"))
+        capture.issues.append(Issue(INFO, None, f"capture {day}: no level 2"))
         return capture
     if capture.level2 is None:
         return capture   # el error de esquema ya está reportado
     if not capture.level2.rows:
         capture.issues.append(Issue(WARNING, files.level2.name,
-                                    "nivel 2 sin trades: el día no se puede reconstruir"))
+                                    "level 2 has no trades: the day cannot be rebuilt"))
         return capture
     if capture.level1 is None:
         capture.issues.append(Issue(ERROR, files.level2.name,
-                                    "falta un nivel 1 utilizable del mismo día: sin precio no se "
-                                    "puede aplicar el umbral"))
+                                    "no usable level 1 for the same day: without prices the "
+                                    "threshold cannot be applied"))
         return capture
 
     rows = n3.preparar_filas(capture.level2.rows, capture.level2.fieldnames)
@@ -102,16 +102,16 @@ def reconstruct_capture(files, remove_cancellations=True):
         if capture.cancellations:
             unmatched = sum(1 for _, cancelled in capture.cancellations if cancelled is None)
             capture.issues.append(Issue(INFO, files.level2.name,
-                                        f"{len(capture.cancellations)} cancelaciones quitadas junto con "
-                                        f"el trade que anulan"))
+                                        f"{len(capture.cancellations)} cancellations dropped together with "
+                                        f"the trade they cancel"))
             if unmatched:
                 capture.issues.append(Issue(WARNING, files.level2.name,
-                                            f"{unmatched} cancelaciones sin trade anulado localizado "
-                                            f"(se quitan igualmente)"))
+                                            f"{unmatched} cancellations without a matching cancelled trade "
+                                            f"(dropped anyway)"))
     capture.n_trades = len(rows)
     if not rows:
         capture.issues.append(Issue(WARNING, files.level2.name,
-                                    "nivel 2 sin trades válidos (solo pies de página o filas sin hora)"))
+                                    "level 2 has no valid trades (only footers or rows without time)"))
         return capture
 
     prices = capture.level1.prices
@@ -136,9 +136,9 @@ def reconstruct_capture(files, remove_cancellations=True):
     without_price = sorted({op.symbol for op in operations if op.price is None})
     if without_price:
         capture.issues.append(Issue(WARNING, files.level1.name,
-                                    f"símbolos del nivel 2 sin precio en el nivel 1 (sus operaciones "
-                                    f"no se filtran por umbral): {', '.join(without_price)}"))
+                                    f"level-2 symbols without a level-1 price (their operations "
+                                    f"are not filtered by threshold): {', '.join(without_price)}"))
     ids = [op.id for op in operations]
     if len(ids) != len(set(ids)):
-        capture.issues.append(Issue(ERROR, files.level2.name, "IDs de operación repetidos"))
+        capture.issues.append(Issue(ERROR, files.level2.name, "repeated operation IDs"))
     return capture

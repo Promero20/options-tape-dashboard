@@ -15,12 +15,12 @@ from pathlib import Path
 from ..rules import strategies
 from ..rules.classification import BEAR, BULL, UNDETERMINED, Override
 
-FILE_NAME = "ediciones.sqlite"
+FILE_NAME = "edits.sqlite"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS overrides (
     operation_id TEXT PRIMARY KEY,
-    direction    TEXT CHECK (direction IN ('bull', 'bear', 'indeterminado')),
+    direction    TEXT CHECK (direction IN ('bull', 'bear', 'undetermined')),
     strategy     TEXT,
     updated_at   TEXT NOT NULL,
     CHECK ((direction IS NULL) <> (strategy IS NULL))
@@ -68,10 +68,10 @@ def _now():
 
 def _validate_leg(option_type, strike, exp_date, price, size):
     if option_type not in ("call", "put"):
-        raise ValueError(f"tipo de opción no válido: {option_type!r}")
+        raise ValueError(f"invalid option type: {option_type!r}")
     date.fromisoformat(exp_date)
     if strike <= 0 or price < 0 or size <= 0 or int(size) != size:
-        raise ValueError("strike y tamaño deben ser positivos, el tamaño entero y el precio no negativo")
+        raise ValueError("strike and size must be positive, size an integer and price not negative")
 
 
 class EditStore:
@@ -88,12 +88,12 @@ class EditStore:
 
     def set_direction(self, operation_id, direction):
         if direction not in (BULL, BEAR, UNDETERMINED):
-            raise ValueError(f"dirección no válida: {direction!r}")
+            raise ValueError(f"invalid direction: {direction!r}")
         self._set_override(operation_id, direction, None)
 
     def set_strategy(self, operation_id, strategy):
         if strategy not in strategies.BY_KEY:
-            raise ValueError(f"tipo de operación desconocido: {strategy!r}")
+            raise ValueError(f"unknown operation type: {strategy!r}")
         self._set_override(operation_id, None, strategy)
 
     def _set_override(self, operation_id, direction, strategy):
@@ -128,7 +128,7 @@ class EditStore:
                 "updated_at = ? WHERE id = ?",
                 (option_type, float(strike), exp_date, float(price), int(size), _now(), leg_id))
             if cursor.rowcount == 0:
-                raise KeyError(f"no existe la pata manual {leg_id}")
+                raise KeyError(f"manual leg {leg_id} does not exist")
 
     def delete_manual_leg(self, leg_id):
         with self._connect() as db:

@@ -16,9 +16,9 @@ from .sides import BUY, SELL, option_type
 VERTICAL = "vertical"               # mismo tipo y expiración, strikes distintos
 DIAGONAL = "diagonal"               # mismo tipo, expiración y strike distintos
 CALENDAR = "calendar"               # mismo tipo y strike, expiración distinta
-COMBO_SAME_STRIKE = "call+put mismo strike"
-COMBO_DIFF_STRIKE = "call+put strikes distintos"
-COMBO_DIFF_EXP = "call+put expiración distinta"
+COMBO_SAME_STRIKE = "call+put same strike"
+COMBO_DIFF_STRIKE = "call+put different strikes"
+COMBO_DIFF_EXP = "call+put different expirations"
 
 
 def geometry(legs):
@@ -82,30 +82,30 @@ class Strategy:
         return _SIDES[self.key](legs)
 
 
-UNKNOWN = "no_lo_se"
+UNKNOWN = "unknown"
 
 STRATEGIES = (
-    Strategy("bull_call", "Bull call spread (débito: compra el strike bajo)", VERTICAL, calls_only=True),
-    Strategy("bear_call", "Bear call spread (crédito: vende el strike bajo)", VERTICAL, calls_only=True),
-    Strategy("bear_put", "Bear put spread (débito: compra el strike alto)", VERTICAL, puts_only=True),
-    Strategy("bull_put", "Bull put spread (crédito: vende el strike alto)", VERTICAL, puts_only=True),
-    Strategy("diagonal_compra_cercana", "Diagonal: compra el vencimiento cercano", DIAGONAL),
-    Strategy("diagonal_compra_lejana", "Diagonal: compra el vencimiento lejano", DIAGONAL),
-    Strategy("calendar_largo", "Calendar largo (compra el vencimiento lejano)", CALENDAR),
-    Strategy("calendar_corto", "Calendar corto (vende el vencimiento lejano)", CALENDAR),
-    Strategy("straddle_comprado", "Straddle comprado", COMBO_SAME_STRIKE),
-    Strategy("straddle_vendido", "Straddle vendido", COMBO_SAME_STRIKE),
-    Strategy("sintetico_largo", "Sintético largo (compra call, vende put)", COMBO_SAME_STRIKE),
-    Strategy("sintetico_corto", "Sintético corto (vende call, compra put)", COMBO_SAME_STRIKE),
-    Strategy("strangle_comprado", "Strangle comprado", COMBO_DIFF_STRIKE),
-    Strategy("strangle_vendido", "Strangle vendido", COMBO_DIFF_STRIKE),
-    Strategy("risk_reversal_alcista", "Risk reversal alcista (compra call, vende put)", COMBO_DIFF_STRIKE),
-    Strategy("risk_reversal_bajista", "Risk reversal bajista (compra put, vende call)", COMBO_DIFF_STRIKE),
-    Strategy("compra_call_vende_put", "Compra la call y vende la put", COMBO_DIFF_EXP),
-    Strategy("compra_put_vende_call", "Compra la put y vende la call", COMBO_DIFF_EXP),
-    Strategy("compra_ambas", "Compra las dos patas", COMBO_DIFF_EXP),
-    Strategy("vende_ambas", "Vende las dos patas", COMBO_DIFF_EXP),
-    Strategy(UNKNOWN, "No lo sé", None),
+    Strategy("bull_call", "Bull call spread (debit: buys the low strike)", VERTICAL, calls_only=True),
+    Strategy("bear_call", "Bear call spread (credit: sells the low strike)", VERTICAL, calls_only=True),
+    Strategy("bear_put", "Bear put spread (debit: buys the high strike)", VERTICAL, puts_only=True),
+    Strategy("bull_put", "Bull put spread (credit: sells the high strike)", VERTICAL, puts_only=True),
+    Strategy("diagonal_buy_near", "Diagonal: buys the near expiration", DIAGONAL),
+    Strategy("diagonal_buy_far", "Diagonal: buys the far expiration", DIAGONAL),
+    Strategy("long_calendar", "Long calendar (buys the far expiration)", CALENDAR),
+    Strategy("short_calendar", "Short calendar (sells the far expiration)", CALENDAR),
+    Strategy("long_straddle", "Long straddle", COMBO_SAME_STRIKE),
+    Strategy("short_straddle", "Short straddle", COMBO_SAME_STRIKE),
+    Strategy("long_synthetic", "Long synthetic (buys the call, sells the put)", COMBO_SAME_STRIKE),
+    Strategy("short_synthetic", "Short synthetic (sells the call, buys the put)", COMBO_SAME_STRIKE),
+    Strategy("long_strangle", "Long strangle", COMBO_DIFF_STRIKE),
+    Strategy("short_strangle", "Short strangle", COMBO_DIFF_STRIKE),
+    Strategy("bullish_risk_reversal", "Bullish risk reversal (buys the call, sells the put)", COMBO_DIFF_STRIKE),
+    Strategy("bearish_risk_reversal", "Bearish risk reversal (buys the put, sells the call)", COMBO_DIFF_STRIKE),
+    Strategy("buy_call_sell_put", "Buys the call and sells the put", COMBO_DIFF_EXP),
+    Strategy("buy_put_sell_call", "Buys the put and sells the call", COMBO_DIFF_EXP),
+    Strategy("buy_both", "Buys both legs", COMBO_DIFF_EXP),
+    Strategy("sell_both", "Sells both legs", COMBO_DIFF_EXP),
+    Strategy(UNKNOWN, "Don't know", None),
 )
 
 _SIDES = {
@@ -113,22 +113,22 @@ _SIDES = {
     "bear_call": lambda legs: _by(legs, _strike, SELL, BUY),
     "bear_put": lambda legs: _by(legs, _strike, SELL, BUY),
     "bull_put": lambda legs: _by(legs, _strike, BUY, SELL),
-    "diagonal_compra_cercana": lambda legs: _by(legs, _exp, BUY, SELL),
-    "diagonal_compra_lejana": lambda legs: _by(legs, _exp, SELL, BUY),
-    "calendar_largo": lambda legs: _by(legs, _exp, SELL, BUY),
-    "calendar_corto": lambda legs: _by(legs, _exp, BUY, SELL),
-    "straddle_comprado": lambda legs: (BUY, BUY),
-    "straddle_vendido": lambda legs: (SELL, SELL),
-    "sintetico_largo": lambda legs: _by_type(legs, BUY, SELL),
-    "sintetico_corto": lambda legs: _by_type(legs, SELL, BUY),
-    "strangle_comprado": lambda legs: (BUY, BUY),
-    "strangle_vendido": lambda legs: (SELL, SELL),
-    "risk_reversal_alcista": lambda legs: _by_type(legs, BUY, SELL),
-    "risk_reversal_bajista": lambda legs: _by_type(legs, SELL, BUY),
-    "compra_call_vende_put": lambda legs: _by_type(legs, BUY, SELL),
-    "compra_put_vende_call": lambda legs: _by_type(legs, SELL, BUY),
-    "compra_ambas": lambda legs: (BUY, BUY),
-    "vende_ambas": lambda legs: (SELL, SELL),
+    "diagonal_buy_near": lambda legs: _by(legs, _exp, BUY, SELL),
+    "diagonal_buy_far": lambda legs: _by(legs, _exp, SELL, BUY),
+    "long_calendar": lambda legs: _by(legs, _exp, SELL, BUY),
+    "short_calendar": lambda legs: _by(legs, _exp, BUY, SELL),
+    "long_straddle": lambda legs: (BUY, BUY),
+    "short_straddle": lambda legs: (SELL, SELL),
+    "long_synthetic": lambda legs: _by_type(legs, BUY, SELL),
+    "short_synthetic": lambda legs: _by_type(legs, SELL, BUY),
+    "long_strangle": lambda legs: (BUY, BUY),
+    "short_strangle": lambda legs: (SELL, SELL),
+    "bullish_risk_reversal": lambda legs: _by_type(legs, BUY, SELL),
+    "bearish_risk_reversal": lambda legs: _by_type(legs, SELL, BUY),
+    "buy_call_sell_put": lambda legs: _by_type(legs, BUY, SELL),
+    "buy_put_sell_call": lambda legs: _by_type(legs, SELL, BUY),
+    "buy_both": lambda legs: (BUY, BUY),
+    "sell_both": lambda legs: (SELL, SELL),
     UNKNOWN: lambda legs: (None, None),
 }
 

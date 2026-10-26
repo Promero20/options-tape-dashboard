@@ -37,14 +37,14 @@ def test_only_compatible_types_are_offered():
     ("bear_put", [leg("put", 90, NEAR, 1, 1), leg("put", 100, NEAR, 1, 1)], (SELL, BUY)),
     ("bull_put", [leg("put", 90, NEAR, 1, 1), leg("put", 100, NEAR, 1, 1)], (BUY, SELL)),
     # diagonales y calendars: depende de la expiración
-    ("diagonal_compra_cercana", [leg("call", 110, FAR, 1, 1), leg("call", 100, NEAR, 1, 1)], (SELL, BUY)),
-    ("diagonal_compra_lejana", [leg("call", 110, FAR, 1, 1), leg("call", 100, NEAR, 1, 1)], (BUY, SELL)),
-    ("calendar_largo", [leg("call", 100, NEAR, 1, 1), leg("call", 100, FAR, 1, 1)], (SELL, BUY)),
-    ("calendar_corto", [leg("call", 100, NEAR, 1, 1), leg("call", 100, FAR, 1, 1)], (BUY, SELL)),
+    ("diagonal_buy_near", [leg("call", 110, FAR, 1, 1), leg("call", 100, NEAR, 1, 1)], (SELL, BUY)),
+    ("diagonal_buy_far", [leg("call", 110, FAR, 1, 1), leg("call", 100, NEAR, 1, 1)], (BUY, SELL)),
+    ("long_calendar", [leg("call", 100, NEAR, 1, 1), leg("call", 100, FAR, 1, 1)], (SELL, BUY)),
+    ("short_calendar", [leg("call", 100, NEAR, 1, 1), leg("call", 100, FAR, 1, 1)], (BUY, SELL)),
     # call + put: depende del tipo
-    ("sintetico_largo", [leg("put", 100, NEAR, 1, 1), leg("call", 100, NEAR, 1, 1)], (SELL, BUY)),
-    ("risk_reversal_bajista", [leg("put", 90, NEAR, 1, 1), leg("call", 110, NEAR, 1, 1)], (BUY, SELL)),
-    ("straddle_vendido", [leg("put", 100, NEAR, 1, 1), leg("call", 100, NEAR, 1, 1)], (SELL, SELL)),
+    ("long_synthetic", [leg("put", 100, NEAR, 1, 1), leg("call", 100, NEAR, 1, 1)], (SELL, BUY)),
+    ("bearish_risk_reversal", [leg("put", 90, NEAR, 1, 1), leg("call", 110, NEAR, 1, 1)], (BUY, SELL)),
+    ("short_straddle", [leg("put", 100, NEAR, 1, 1), leg("call", 100, NEAR, 1, 1)], (SELL, SELL)),
     (s.UNKNOWN, [leg("put", 100, NEAR, 1, 1), leg("call", 100, NEAR, 1, 1)], (None, None)),
 ])
 def test_sides_follow_the_legs_not_their_order(key, legs, expected):

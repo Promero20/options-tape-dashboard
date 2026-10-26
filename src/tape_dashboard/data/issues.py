@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 ERROR = "error"      # el fichero (o el día) no se puede usar
-WARNING = "aviso"    # se usa, pero hay algo que revisar
+WARNING = "warning"  # se usa, pero hay algo que revisar
 INFO = "info"        # dato informativo
 
 

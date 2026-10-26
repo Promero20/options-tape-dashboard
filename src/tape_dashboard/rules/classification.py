@@ -30,17 +30,17 @@ from . import strategies
 from .sides import BUY, SELL, leg_side, option_type
 
 # Destinos
-NET = "neto"
-WALLS = "paredes"
-UNDETERMINED_SINGLE = "indeterminada"
-UNDETERMINED_MULTI = "indeterminada multi-leg"
-DISCARDED = "descartada"
-PENDING = "pendiente"
+NET = "net"
+WALLS = "walls"
+UNDETERMINED_SINGLE = "undetermined"
+UNDETERMINED_MULTI = "undetermined multi-leg"
+DISCARDED = "discarded"
+PENDING = "pending"
 DESTINATIONS = (NET, WALLS, UNDETERMINED_SINGLE, UNDETERMINED_MULTI, DISCARDED, PENDING)
 
 # Direcciones y paredes
-BULL, BEAR, UNDETERMINED = "bull", "bear", "indeterminado"
-SUPPORT, RESISTANCE = "soporte", "resistencia"
+BULL, BEAR, UNDETERMINED = "bull", "bear", "undetermined"
+SUPPORT, RESISTANCE = "support", "resistance"
 
 # Ratio entre la pata más grande y la más pequeña a partir del cual una
 # multi-leg se marca para revisión (decisión 0012).
@@ -111,21 +111,21 @@ def _single_leg(operation, leg, side, base):
     common = dict(base, structure=structure, strike=float(leg["strike"]), expiration=leg["exp_date"])
     gross = _gross(operation)
     if side is None:
-        return Classification(UNDETERMINED_SINGLE, reason="lado indeterminado", direction=UNDETERMINED,
+        return Classification(UNDETERMINED_SINGLE, reason="undetermined side", direction=UNDETERMINED,
                               premium=gross, **common)
     direction = _direction_of(leg, side)
     if side == BUY:
-        return Classification(NET, reason="pata comprada", direction=direction,
+        return Classification(NET, reason="bought leg", direction=direction,
                               premium=_signed(direction, gross), **common)
     wall = SUPPORT if option_type(leg) == "put" else RESISTANCE
-    return Classification(WALLS, reason="pata vendida", direction=direction, premium=gross,
+    return Classification(WALLS, reason="sold leg", direction=direction, premium=gross,
                           wall=wall, **common)
 
 
 _COMBO_STRUCTURES = {
-    strategies.COMBO_SAME_STRIKE: ("straddle", "sintético"),
+    strategies.COMBO_SAME_STRIKE: ("straddle", "synthetic"),
     strategies.COMBO_DIFF_STRIKE: ("strangle", "risk reversal"),
-    strategies.COMBO_DIFF_EXP: ("call + put con distinta expiración",) * 2,
+    strategies.COMBO_DIFF_EXP: ("call + put with different expirations",) * 2,
 }
 
 
@@ -136,24 +136,24 @@ def _two_legs(operation, legs, sides, base):
     if g in _COMBO_STRUCTURES:
         same_side, opposite = _COMBO_STRUCTURES[g]
         if None in sides:
-            structure = same_side if same_side == opposite else f"{same_side} o {opposite}"
+            structure = same_side if same_side == opposite else f"{same_side} or {opposite}"
         else:
             structure = same_side if sides[0] == sides[1] else opposite
-        reason = ("risk reversal y sintéticos se descartan hasta decidir si van al neto"
-                  if structure in ("sintético", "risk reversal") else "estructura que se descarta")
+        reason = ("risk reversals and synthetics are discarded until it is decided whether they go to net"
+                  if structure in ("synthetic", "risk reversal") else "structure that is discarded")
         return Classification(DISCARDED, structure=structure, reason=reason, direction=None,
                               premium=gross, **base)
     if g == strategies.CALENDAR:
-        return Classification(DISCARDED, structure="calendar", reason="estructura que se descarta",
+        return Classification(DISCARDED, structure="calendar", reason="structure that is discarded",
                               direction=None, premium=gross, **base)
 
     structure = "vertical" if g == strategies.VERTICAL else "diagonal"
     if None in sides:
-        return Classification(UNDETERMINED_MULTI, structure=structure, reason="alguna pata sin lado claro",
+        return Classification(UNDETERMINED_MULTI, structure=structure, reason="a leg without a clear side",
                               direction=UNDETERMINED, premium=gross, **base)
     if sides[0] == sides[1]:
         return Classification(UNDETERMINED_MULTI, structure=structure,
-                              reason="las dos patas del mismo lado", direction=UNDETERMINED,
+                              reason="both legs on the same side", direction=UNDETERMINED,
                               premium=gross, **base)
 
     bought, sold = (legs[0], legs[1]) if sides[0] == BUY else (legs[1], legs[0])
@@ -162,24 +162,24 @@ def _two_legs(operation, legs, sides, base):
     if g == strategies.VERTICAL:
         if debit > 0:
             direction = _direction_of(bought, BUY)
-            return Classification(NET, structure="vertical de débito", reason="la pata comprada pesa más",
+            return Classification(NET, structure="debit vertical", reason="the bought leg is larger",
                                   direction=direction, strike=float(bought["strike"]),
                                   expiration=bought["exp_date"], premium=_signed(direction, debit), **base)
         if debit < 0:
             direction = _direction_of(sold, SELL)
             wall = SUPPORT if option_type(sold) == "put" else RESISTANCE
-            return Classification(WALLS, structure="vertical de crédito", reason="la pata vendida pesa más",
+            return Classification(WALLS, structure="credit vertical", reason="the sold leg is larger",
                                   direction=direction, strike=float(sold["strike"]),
                                   expiration=sold["exp_date"], premium=-debit, wall=wall, **base)
-        return Classification(UNDETERMINED_MULTI, structure="vertical", reason="débito y crédito iguales",
+        return Classification(UNDETERMINED_MULTI, structure="vertical", reason="debit and credit are equal",
                               direction=UNDETERMINED, premium=gross, **base)
 
     # Diagonal: siempre al neto. La dirección es la de la pata con más premium
     # (la del script); el importe, |comprada − vendida| (decisión 0018).
     dominant, dominant_side = (bought, BUY) if debit >= 0 else (sold, SELL)
     direction = _direction_of(dominant, dominant_side)
-    kind = "débito" if debit >= 0 else "crédito"
-    return Classification(NET, structure=f"diagonal de {kind}", reason="las diagonales van al neto",
+    kind = "debit" if debit >= 0 else "credit"
+    return Classification(NET, structure=f"{kind} diagonal", reason="diagonals go to net",
                           direction=direction, strike=float(bought["strike"]),
                           expiration=min(bought["exp_date"], sold["exp_date"]),
                           premium=_signed(direction, abs(debit)), **base)
@@ -189,7 +189,7 @@ def _override_sides(legs, override, measured):
     """Lados que fija una corrección, o (None, aviso) si no encaja con las patas."""
     if len(legs) == 1:
         if override.direction is None:
-            return None, "corrección de tipo de operación en una single-leg: se ignora"
+            return None, "operation-type correction on a single-leg: ignored"
         if override.direction == UNDETERMINED:
             return (None,), None
         wants_call_bought = override.direction == BULL
@@ -197,8 +197,8 @@ def _override_sides(legs, override, measured):
         return (BUY if bought else SELL,), None
     strategy = strategies.BY_KEY.get(override.strategy) if override.strategy else None
     if strategy is None or not strategy.applies_to(legs):
-        return None, f"el tipo de operación elegido ({override.strategy or override.direction}) " \
-                     f"no encaja con las patas actuales: se ignora"
+        return None, f"the chosen operation type ({override.strategy or override.direction}) " \
+                     f"no longer fits the legs: ignored"
     return strategy.sides(legs), None
 
 
@@ -206,8 +206,8 @@ def _contradictions(legs, measured, chosen):
     notes = []
     for leg, m, c in zip(legs, measured, chosen):
         if m is not None and c is not None and m != c:
-            notes.append(f"{leg['contract_symbol']}: la agresividad ({leg['agr']:+.2f}) indica {m}, "
-                         f"la corrección dice {c}")
+            notes.append(f"{leg['contract_symbol']}: aggressiveness ({leg['agr']:+.2f}) says {m}, "
+                         f"the correction says {c}")
     return notes
 
 
@@ -219,14 +219,14 @@ def classify(operation, override=None):
     gross = _gross(operation)
 
     if summary["stock_option"]:
-        return Classification(DISCARDED, structure="con acciones", reason="incluye una pata de acciones",
+        return Classification(DISCARDED, structure="with stock", reason="includes a stock leg",
                               direction=None, premium=gross, **base)
     if summary["patas_incompletas"]:
-        return Classification(PENDING, structure="patas incompletas",
-                              reason="multi-leg con una sola pata capturada", direction=None,
+        return Classification(PENDING, structure="incomplete legs",
+                              reason="multi-leg with a single captured leg", direction=None,
                               premium=gross, **base)
     if len(legs) >= 3:
-        return Classification(DISCARDED, structure=f"{len(legs)} patas", reason="tres patas o más",
+        return Classification(DISCARDED, structure=f"{len(legs)} legs", reason="three legs or more",
                               direction=None, premium=gross, **base)
 
     measured = _measured_sides(legs)

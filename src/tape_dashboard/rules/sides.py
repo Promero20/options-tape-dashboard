@@ -2,8 +2,8 @@
 
 from pipeline import nivel3_agrupar as n3
 
-BUY = "compra"
-SELL = "venta"
+BUY = "buy"
+SELL = "sell"
 
 # La agresividad se calcula con coma flotante: un trade a un cuarto del
 # half-spread puede salir como 0.2499999999999989 o como 0.25000000000000333.

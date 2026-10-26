@@ -41,12 +41,12 @@ def discover(data_dir):
                 try:
                     day = datetime.strptime(m.group(1), "%Y%m%d").date()
                 except ValueError:
-                    issues.append(Issue(WARNING, path.name, "fecha no válida en el nombre"))
+                    issues.append(Issue(WARNING, path.name, "invalid date in the file name"))
                     break
                 setattr(captures.setdefault(day, CaptureFiles(day)), level, path)
                 break
         else:
-            issues.append(Issue(WARNING, path.name, "CSV no reconocido: no se carga"))
+            issues.append(Issue(WARNING, path.name, "unrecognised CSV: not loaded"))
     return dict(sorted(captures.items())), issues
 
 

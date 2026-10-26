@@ -32,13 +32,13 @@ def test_report_renders_every_section(tmp_path):
 
     text = report.render(load_dataset(folder))
 
-    assert "Capturas: 2, reconstruibles: 1" in text
-    assert "Script del pipeline: no está en la carpeta de datos" in text
+    assert "Captures: 2, rebuildable: 1" in text
+    assert "Pipeline script: not found in the data folder" in text
     assert "2026-10-13  N1-E    N2-E    —" in text
-    assert "Calidad del nivel 2" in text
-    assert "nivel2_trades_20261016.csv: nivel 2 sin trades" in text
+    assert "Level-2 quality" in text
+    assert "nivel2_trades_20261016.csv: level 2 has no trades" in text
 
 
 def test_report_fails_cleanly_without_data_folder(tmp_path, capsys):
     assert report.main(["--data-dir", str(tmp_path / "no-existe")]) == 1
-    assert "No existe la carpeta de datos" in capsys.readouterr().err
+    assert "The data folder does not exist" in capsys.readouterr().err
