@@ -108,3 +108,18 @@ def test_every_real_operation_gets_one_consistent_destination(dataset):
                 assert destination == c.DISCARDED
             elif destination in (c.NET, c.WALLS):
                 assert x.classification.strike is not None and x.classification.direction in (c.BULL, c.BEAR)
+
+
+def test_the_operations_grid_builds_for_the_whole_period(data_dir, dataset, tmp_path):
+    from tape_dashboard.app.state import AppState
+    from tape_dashboard.app.tabs.operations.callbacks import detail_content, grid_content
+    from tape_dashboard.config import Settings
+
+    state = AppState(Settings(data_dir=data_dir, user_data_dir=tmp_path / "user"))
+    first, last = min(dataset.usable_dates), max(dataset.usable_dates)
+    rows, _, summary = grid_content(state, "custom", first.isoformat(), last.isoformat())
+
+    assert rows and summary.startswith(f"{len(rows)} operations above the threshold")
+    assert len({r["id"] for r in rows}) == len(rows)
+    assert all(r["destination"] in c.DESTINATIONS and r["destination"] != c.PENDING for r in rows)
+    assert detail_content(state, rows[0]["id"])[0].children.endswith(rows[0]["id"])

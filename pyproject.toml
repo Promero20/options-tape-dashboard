@@ -10,7 +10,10 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "dash>=4.4,<5",
+    "dash-ag-grid>=35.3,<36",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
@@ -22,10 +25,18 @@ package-dir = {"" = "src", "pipeline" = "pipeline"}
 packages = [
     "pipeline",
     "tape_dashboard",
+    "tape_dashboard.app",
+    "tape_dashboard.app.tabs",
+    "tape_dashboard.app.tabs.incomplete",
+    "tape_dashboard.app.tabs.operations",
+    "tape_dashboard.app.tabs.positions",
     "tape_dashboard.data",
     "tape_dashboard.edits",
     "tape_dashboard.rules",
 ]
+
+[tool.setuptools.package-data]
+"tape_dashboard.app" = ["assets/*.css"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
