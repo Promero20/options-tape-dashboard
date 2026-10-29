@@ -151,6 +151,13 @@ Corrections do not apply to pending operations: the missing leg has to be comple
 
 A manual leg joins the operation as one more trade row: with the time and Trade Condition of the first trade (so the ID does not change) and **without aggressiveness**. Structure, premium, size and times are recomputed with the script's functions. The aggressiveness column keeps reflecting measured values only, because the script leaves legs without data out of the average. The side is set by the operation type chosen.
 
+How it works in the interface ([decision 0030](decisions/0030-manual-legs.md)):
+
+- It is entered in tab 2, which lists the pending operations of one capture that are above the threshold ([decision 0013](decisions/0013-tab-2-scope.md)). The form starts from the known leg's type, expiration and size.
+- One manual leg per operation, and the operation type is required ("Don't know" is one of the options). Before saving, the form shows where the operation will go.
+- It is edited or deleted from the operation's pop-up in tab 1. Deleting it also deletes the operation type chosen with it, and the operation goes back to tab 2. Clearing only the type keeps the leg, and the operation becomes an undetermined multi-leg.
+- If a stored leg can no longer be applied, the operation is pending again with a note, and saving from tab 2 replaces the leg.
+
 ### Anomalous size ratio
 
 A multi-leg whose largest leg has **10 times or more** the contracts of its smallest one is flagged for review ([decision 0012](decisions/0012-flag-anomalous-size-ratios.md)). In the real data, multi-legs above the threshold have ratios from 1 to 5.9, and then jump to 11.9 and more. It does not change the destination.

@@ -9,7 +9,7 @@ Each phase ends with the tests passing, the documentation up to date and a commi
 | 2 | Classification, operation-type catalogue and manual edits (pure logic) | **done** |
 | 3 | Application and tab 1: list | **done** |
 | 4 | Tab 1: net directional and walls charts | **done** |
-| 5 | Tab 2: incomplete legs | pending |
+| 5 | Tab 2: incomplete legs | **done** |
 | 6 | Tab 3: positions | pending |
 | 7 | SPY GEX (new input file and panel) | pending |
 | 8 | Visual polish: readability and look of the whole interface | pending |
@@ -65,9 +65,16 @@ It also includes the script change that drops cancellations ([0015](decisions/00
 
 **Done when:** the aggregation, the figures and the panel's controllers are tested on synthetic data; every dollar of every real underlying lands in exactly one place of the charts; a correction moves premium between charts; and the charts are served over HTTP with the real data. ✔
 
-## Phases 5 to 8
+## Phase 5: tab 2, incomplete legs
 
-- **5**: tab 2, with a day selector, the list of incomplete operations above the threshold and a form with the operation type.
+- Shared logic for the manual leg (`app/manual_legs.py`) and its fields (`app/leg_form.py`): validation, the completed operation rebuilt with the script, the operation types that fit, a preview, and saving only when everything is valid.
+- Tab 2: day selector by capture, the pending operations above the threshold, and a form that starts from the known leg ([0013](decisions/0013-tab-2-scope.md), [0030](decisions/0030-manual-legs.md)).
+- Tab 1's pop-up edits or deletes the manual leg of a completed operation; deleting it sends the operation back to tab 2.
+
+**Done when:** the manual-leg logic, tab 2's controllers and the pop-up are tested on synthetic data; every real pending operation can be completed in the form; and a real operation is completed, shown in tab 1, and sent back to tab 2 over HTTP. ✔
+
+## Phases 6 to 8
+
 - **6**: positions, history and P&L, with a model ready for a future read-only import from tastytrade.
 - **7**: SPY GEX file and its panel.
 - **8**: visual polish, once everything works: readability, layout and look of every tab. Until then, styling stays minimal.

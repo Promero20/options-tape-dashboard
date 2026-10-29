@@ -36,7 +36,9 @@ flowchart LR
                 PURE[ranges + rows + editing<br/>pure functions]
                 CB[callbacks + chart_callbacks<br/>thin wrappers]
             end
-            TABS[tabs.incomplete, tabs.positions<br/>placeholders]
+            TAB2[tabs.incomplete<br/>pending list + form]
+            ML[manual_legs + leg_form<br/>shared by tabs 1 and 2]
+            TABS[tabs.positions<br/>placeholder]
         end
         REP[report<br/>CLI]
     end
@@ -62,7 +64,10 @@ flowchart LR
     PURE --> CB
     CH --> CB
     CB -- corrections --> ST
-    CB & W & TABS <--> B
+    ML --> CB & TAB2
+    AP --> TAB2
+    TAB2 -- manual legs --> ST
+    CB & W & TAB2 & TABS <--> B
     D & V & Q & AP --> REP
 ```
 
@@ -93,6 +98,8 @@ Anything that does not fit becomes an `Issue` attached to its file: errors (the 
 - `layout` builds the page: header, banner and one tab per package in `tabs/`. Each tab exposes `TITLE`, `layout(state)` and `register(app, state)`.
 - In `tabs/operations`, the logic the interface adds is in pure functions: `ranges` (which capture dates a preset covers), `rows` (grid rows and columns), `editing` (which correction an operation accepts, and saving it). `view` builds the components; `callbacks` connects the list and the pop-up, and `chart_callbacks` the charts. Each callback calls a controller that takes the state and plain values (`grid_content`, `detail_content`, `modal_action`, `net_chart`, `walls_chart`…), so the tests call the controllers without a browser.
 - Two counters in `dcc.Store` (`data-version`, `edits-version`) tell the callbacks when to refresh: Reload increments the first, saving a correction the second. Grid rows carry a stable ID (`getRowId`), so a refresh updates them in place instead of rebuilding the grid.
+- `manual_legs` holds the logic of the manual leg that completes a pending operation: reading the form, building the completed operation with the script, the operation types that fit, the preview and saving, which validates everything before writing. `leg_form` builds its fields with an ID prefix, so tab 2's form and tab 1's pop-up share them ([decision 0030](decisions/0030-manual-legs.md)).
+- `tabs/incomplete` is tab 2: a day selector, the pending operations of that capture and the form. Saving increments `edits-version`, so the operation leaves the list and appears in tab 1.
 - The editing pop-up is plain Dash with local CSS: no component library or external stylesheet ([decision 0027](decisions/0027-editing-pop-up-without-extra-dependencies.md)).
 
 ## Data layer design choices

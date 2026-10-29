@@ -152,6 +152,8 @@ Exactly one of `direction` or `strategy` is always set.
 | `size` | integer > 0 | Contracts |
 | `created_at`, `updated_at` | ISO date and time | |
 
+The interface allows one manual leg per operation, always saved together with an operation type in `overrides` ([decision 0030](decisions/0030-manual-legs.md)).
+
 ## Positions
 
 To be defined in phase 6, in the same user-data folder.

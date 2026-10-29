@@ -8,7 +8,7 @@ A local Python dashboard to review the daily options flow. It reads the CSV file
 
 The dashboard **only reads** the data folder, never modifies it, and never sends orders.
 
-> **Status:** phases 0 to 4 are done: the level-3 script was refactored under a byte-for-byte regression test, the data layer reads, validates and rebuilds every capture, the classification rules and manual edits are in place, and the application runs with the operations list and the net directional and walls charts. Tabs 2 and 3 and the GEX panel come in the next phases. The full plan is in [docs/plan.md](docs/plan.md).
+> **Status:** phases 0 to 5 are done: the level-3 script was refactored under a byte-for-byte regression test, the data layer reads, validates and rebuilds every capture, the classification rules and manual edits are in place, and the application runs with the operations list, the net directional and walls charts, and the tab to complete operations with a missing leg. The positions tab and the GEX panel come in the next phases. The full plan is in [docs/plan.md](docs/plan.md).
 
 ## Input files
 
@@ -72,14 +72,16 @@ The **Operations** tab has:
 
 - **A range selector by capture date** ([decision 0008](docs/decisions/0008-ranges-by-capture-date.md)): Today (if there is no capture for today yet, the latest one, with a notice), Last week, Last month (the last 7 or 30 calendar days) and Custom.
 - **The list** of operations above the threshold, with sorting and a filter on every column. Undetermined rows are highlighted. The Flags column marks edited operations (✎), anomalous size ratios (⚠) and operations with notes (ⓘ). The operation ID and the script's own direction are optional columns.
-- **Corrections**: clicking an operation's Direction cell opens a pop-up to set the direction of a single-leg or the operation type of a two-leg operation ([business rules](docs/business-rules.md#manual-corrections)). Operations with stock, missing legs or three or more legs are read-only. A correction is saved in the user-data folder and the operation is reclassified at once.
+- **Corrections**: clicking an operation's Direction cell opens a pop-up to set the direction of a single-leg or the operation type of a two-leg operation ([business rules](docs/business-rules.md#manual-corrections)). For an operation completed by hand, the pop-up also edits or deletes its manual leg. Operations with stock, missing legs or three or more legs are read-only. A correction is saved in the user-data folder and the operation is reclassified at once.
 - **The underlying charts**, with their own date range (last month by default) and the underlying set by the selected row or picked from a drop-down ([decision 0029](docs/decisions/0029-chart-panel-controls.md)):
   - **Net directional**: bull premium up and bear premium down by expiration or by strike, with the net and the undetermined single-legs as markers, and the undetermined multi-leg and discarded premium as totals.
   - **Walls**: support and resistance premium by sold strike, with the reference price, an expiration filter and in-the-money walls marked ([decision 0028](docs/decisions/0028-in-the-money-walls.md)).
 - **The detail** of the selected row: its legs, with the aggressiveness, measured side and side used, and the classification's notes.
 - **A warnings banner** above the tabs: files that do not fit the data contract, days that cannot be rebuilt, orphan edits and an outdated level-3 script.
 
-The other two tabs and the GEX panel are placeholders until their phases.
+The **Incomplete legs** tab lists the multi-leg operations of one capture that are above the threshold but have only one captured leg ([decision 0013](docs/decisions/0013-tab-2-scope.md)). Selecting one opens a form that starts from the known leg: type the missing leg's strike and price, adjust the rest if needed, and pick the operation type from those that fit. The form shows where the operation will go before saving; once saved, it moves to the Operations tab ([decision 0030](docs/decisions/0030-manual-legs.md)).
+
+The positions tab and the GEX panel are placeholders until their phases.
 
 The data folder and the user-data folder are set with the `TAPE_DATA_DIR` and `TAPE_USER_DATA_DIR` environment variables, or with a `config.toml` file (template in [`config.example.toml`](config.example.toml)). That file can also point to where the pipeline declares the script hash it expects, so that the dashboard warns if it does not match ([decision 0026](docs/decisions/0026-declared-script-hash-check.md)).
 
