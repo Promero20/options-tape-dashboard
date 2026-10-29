@@ -146,3 +146,22 @@ def test_the_charts_account_for_every_dollar_of_every_underlying(dataset):
         figures.net_figure(buckets, agg.EXPIRATION)
         figures.net_figure(agg.net_buckets(mine, agg.STRIKE), agg.STRIKE, price[1])
         figures.walls_figure(levels, price[1], price[0].isoformat())
+
+
+def test_every_real_pending_operation_can_be_completed_in_the_form(dataset):
+    from tape_dashboard.app import manual_legs as ml
+    from tape_dashboard.edits.apply import pending_operations
+
+    checked = 0
+    for day in dataset.usable_dates:
+        for item in pending_operations(dataset, Edits.empty(), day):
+            op = item.operation
+            values = ml.prefill(op)
+            values["strike"] = round(float(op.legs[0]["strike"]) * 1.1 + 1, 2)     # an invented second leg
+            values["price"] = 1.0
+            fields = tuple(values[k] for k in ("option_type", "strike", "exp_date", "price", "size"))
+            form = ml.form_state(op, fields, None)
+            assert not form.errors and form.options[-1][0] == "unknown"
+            assert ml.form_state(op, fields, form.options[0][0]).text
+            checked += 1
+    assert checked > 0

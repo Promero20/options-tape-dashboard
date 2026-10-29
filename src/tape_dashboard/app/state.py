@@ -41,14 +41,19 @@ class AppState:
         path = self.settings.expected_hash_file
         return declared_hash(path) if path else None
 
-    def classified(self, operation_id):
+    def operation(self, operation_id):
         """
-        The operation with that ID, with its edits applied, from the most
+        The operation with that ID as rebuilt, without edits, from the most
         recent capture that contains it (as in multi-day ranges), or None.
         """
         dataset = self.dataset
         for day in reversed(dataset.usable_dates):
             for op in dataset.captures[day].operations:
                 if op.id == operation_id:
-                    return apply_edits([op], self.edits())[0]
+                    return op
         return None
+
+    def classified(self, operation_id):
+        """The same operation with its edits applied, or None."""
+        op = self.operation(operation_id)
+        return apply_edits([op], self.edits())[0] if op is not None else None
