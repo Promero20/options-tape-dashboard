@@ -78,7 +78,7 @@ def leg_rows(item):
     return rows
 
 
-def _number(decimals):
+def number_format(decimals):
     return {"function": f"params.value == null ? '' : d3.format(',.{decimals}f')(params.value)"}
 
 
@@ -90,11 +90,11 @@ COLUMN_DEFS = [
     {"field": "strike", "headerName": "Strike"},
     {"field": "expiration", "headerName": "Expiration", "minWidth": 120},
     {"field": "premium_m", "headerName": "Premium (M)", "filter": "agNumberColumnFilter",
-     "type": "rightAligned", "valueFormatter": _number(3), "sort": "desc"},
+     "type": "rightAligned", "valueFormatter": number_format(3), "sort": "desc"},
     {"field": "net_price", "headerName": "Net price", "filter": "agNumberColumnFilter",
-     "type": "rightAligned", "valueFormatter": _number(2)},
+     "type": "rightAligned", "valueFormatter": number_format(2)},
     {"field": "aggressiveness", "headerName": "Aggr.", "filter": "agNumberColumnFilter",
-     "type": "rightAligned", "valueFormatter": _number(2)},
+     "type": "rightAligned", "valueFormatter": number_format(2)},
     {"field": "direction", "headerName": "Direction ✎", "cellClass": "cell-editable",
      "headerTooltip": "Click a cell to correct the direction or the operation type",
      "cellClassRules": {"dir-bull": "params.value === 'bull'", "dir-bear": "params.value === 'bear'"}},

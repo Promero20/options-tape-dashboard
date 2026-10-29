@@ -5,6 +5,7 @@ from dash import dcc, html
 
 from ....charts.aggregate import EXPIRATION, STRIKE
 from ....charts.figures import empty_figure
+from ...leg_form import LegFormIds, leg_fields, preview_area
 from .ranges import MONTH, PRESETS, TODAY
 from .rows import OPTIONAL_COLUMNS, ROW_CLASS_RULES, column_defs
 
@@ -16,6 +17,8 @@ DIRECTION_BOX, DIRECTION_INPUT = "ops-direction-box", "ops-direction"
 STRATEGY_BOX, STRATEGY_INPUT = "ops-strategy-box", "ops-strategy"
 READ_ONLY_TEXT = "ops-read-only"
 SAVE, CLEAR, CLOSE = "ops-save", "ops-clear", "ops-close"
+MANUAL_LEG_BOX, DELETE_LEG, MODAL_MESSAGE = "ops-manual-leg-box", "ops-delete-leg", "ops-modal-message"
+LEG = LegFormIds.with_prefix("ops")
 EDITING = "ops-editing"
 SYMBOL = "ops-symbol"
 CHART_RANGE, CHART_DATES, CHART_NOTE = "ops-chart-range", "ops-chart-dates", "ops-chart-note"
@@ -26,7 +29,7 @@ ITM = "itm"
 NO_SYMBOL = "Select an operation in the list or pick an underlying."
 GRAPH_CONFIG = {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d"]}
 
-HIDDEN, SHOWN = {"display": "none"}, {"display": "block"}
+HIDDEN, SHOWN, SHOWN_INLINE = {"display": "none"}, {"display": "block"}, {"display": "inline-block"}
 
 
 def legs_table(rows):
@@ -95,15 +98,22 @@ def modal():
             html.Label("Direction", htmlFor=DIRECTION_INPUT),
             dcc.RadioItems(id=DIRECTION_INPUT, options=[], inline=True, className="choices"),
         ]),
+        html.Div(id=MANUAL_LEG_BOX, style=HIDDEN, children=[
+            html.H4("Manual leg"),
+            leg_fields(LEG, with_strategy=False, with_preview=False),
+        ]),
         html.Div(id=STRATEGY_BOX, style=HIDDEN, children=[
             html.Label("Operation type", htmlFor=STRATEGY_INPUT),
             dcc.Dropdown(id=STRATEGY_INPUT, options=[], clearable=True, placeholder="Choose the operation type"),
         ]),
+        preview_area(LEG),
         html.P(id=READ_ONLY_TEXT, className="read-only"),
         html.Div(id=MODAL_LEGS),
+        html.Div(id=MODAL_MESSAGE),
         html.Div(className="modal-buttons", children=[
             html.Button("Save", id=SAVE, className="btn primary"),
             html.Button("Clear correction", id=CLEAR, className="btn"),
+            html.Button("Delete manual leg", id=DELETE_LEG, className="btn", style=HIDDEN),
             html.Button("Close", id=CLOSE, className="btn"),
         ]),
     ]))

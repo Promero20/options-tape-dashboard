@@ -1,17 +1,16 @@
-"""Tab 2: incomplete legs. Content arrives in phase 5."""
+"""Tab 2: operations with a missing leg, completed by hand (decisions 0011, 0013 and 0030)."""
 
-from dash import html
+from . import callbacks, view
 
 TITLE = "Incomplete legs"
 
 
 def layout(state):
-    return html.Div(className="panel placeholder", children=[
-        html.H4(TITLE),
-        html.P("Multi-leg operations above the threshold that are missing a leg, with a form to complete "
-               "them by picking the operation type. Coming in phase 5.", className="muted"),
-    ])
+    return view.layout(callbacks.day_options(state), callbacks.default_day(state))
 
 
 def register(app, state):
-    return {}
+    return callbacks.register(app, state)
+
+
+__all__ = ["TITLE", "layout", "register"]
