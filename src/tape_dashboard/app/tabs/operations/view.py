@@ -11,7 +11,7 @@ from .rows import OPTIONAL_COLUMNS, ROW_CLASS_RULES, column_defs
 
 RANGE, DATES, RANGE_NOTE = "ops-range", "ops-dates", "ops-range-note"
 COLUMNS, GRID, SUMMARY = "ops-columns", "ops-grid", "ops-summary"
-DETAIL, EDIT = "ops-detail", "ops-edit"
+DETAIL, EDIT, ACTIONS, NEW_POSITION = "ops-detail", "ops-edit", "ops-actions", "ops-new-position"
 MODAL, MODAL_TITLE, MODAL_INFO, MODAL_LEGS = "ops-modal", "ops-modal-title", "ops-modal-info", "ops-modal-legs"
 DIRECTION_BOX, DIRECTION_INPUT = "ops-direction-box", "ops-direction"
 STRATEGY_BOX, STRATEGY_INPUT = "ops-strategy-box", "ops-strategy"
@@ -149,7 +149,10 @@ def layout(state):
         html.Div(className="ops-side", children=[
             charts_panel(),
             html.Div(className="panel detail-panel", children=[
-                html.Button("Edit", id=EDIT, className="btn detail-edit", style=HIDDEN),
+                html.Div(id=ACTIONS, className="detail-actions", style=HIDDEN, children=[
+                    html.Button("New position", id=NEW_POSITION, className="btn"),
+                    html.Button("Edit", id=EDIT, className="btn"),
+                ]),
                 html.Div(id=DETAIL, children=empty_detail()),
             ]),
             html.Div(className="panel placeholder", children=[

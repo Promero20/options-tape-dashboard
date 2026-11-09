@@ -195,7 +195,7 @@ def register(app, state):
     def refresh_grid(preset, start, end, _data_version, _edits_version):
         return grid_content(state, preset, start, end)
 
-    @app.callback(Output(view.DETAIL, "children"), Output(view.EDIT, "style"),
+    @app.callback(Output(view.DETAIL, "children"), Output(view.ACTIONS, "style"),
                   Input(view.GRID, "selectedRows"), Input(ids.EDITS_VERSION, "data"))
     def show_detail(selected, _edits_version):
         return (detail_content(state, selected[0]["id"] if selected else None),

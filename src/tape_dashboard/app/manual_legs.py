@@ -30,7 +30,7 @@ class LegInput:
     size: int
 
 
-def _number(value):
+def number_or_none(value):
     if value is None or value == "":
         return None
     try:
@@ -39,7 +39,7 @@ def _number(value):
         return None
 
 
-def _iso_date(value):
+def iso_date_or_none(value):
     try:
         return date.fromisoformat(str(value)[:10]).isoformat() if value else None
     except ValueError:
@@ -48,7 +48,8 @@ def _iso_date(value):
 
 def parse_leg(option_type, strike, exp_date, price, size):
     """The form's values as a LegInput and an empty list, or None and the errors."""
-    strike, price, size, exp_date = _number(strike), _number(price), _number(size), _iso_date(exp_date)
+    strike, price, size = number_or_none(strike), number_or_none(price), number_or_none(size)
+    exp_date = iso_date_or_none(exp_date)
     errors = []
     if option_type not in (CALL, PUT):
         errors.append("Choose call or put.")

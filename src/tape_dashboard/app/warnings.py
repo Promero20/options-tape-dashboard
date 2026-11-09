@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from ..data.issues import ERROR, INFO, WARNING
 from ..edits.apply import orphans
+from ..positions.pnl import expired_legs
 
 
 @dataclass(frozen=True)
@@ -46,5 +47,15 @@ def collect(state):
     for orphan in orphans(dataset, state.edits()):
         notices.append(Notice(WARNING, f"Orphan {orphan.kind} on {orphan.operation_id} ({orphan.detail}): "
                                        f"its operation no longer exists. It is kept, not deleted."))
+
+    for position in state.positions.all():
+        name = f"Position {position.id} ({position.legs[0].symbol})"
+        if position.operation_id and state.operation(position.operation_id) is None:
+            notices.append(Notice(WARNING, f"{name} is linked to operation {position.operation_id}, which no longer "
+                                           f"exists. The link is kept, not deleted."))
+        expired = expired_legs(position, state.today())
+        if expired:
+            notices.append(Notice(WARNING, f"{name} has {len(expired)} open leg(s) past their expiration: "
+                                           f"close them with their final price."))
 
     return sorted(notices, key=lambda n: n.level != ERROR)

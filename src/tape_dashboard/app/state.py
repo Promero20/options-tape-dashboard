@@ -7,6 +7,7 @@ from ..data.dataset import load_dataset
 from ..data.files import declared_hash
 from ..edits.apply import apply_edits
 from ..edits.store import FILE_NAME, EditStore
+from ..positions.store import FILE_NAME as POSITIONS_FILE_NAME, PositionStore
 
 
 class AppState:
@@ -22,6 +23,7 @@ class AppState:
         self._today = today
         self._lock = threading.Lock()
         self.store = EditStore(settings.user_data_dir / FILE_NAME)
+        self.positions = PositionStore(settings.user_data_dir / POSITIONS_FILE_NAME)
         self.dataset = None
         self.reload()
 

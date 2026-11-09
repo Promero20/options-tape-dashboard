@@ -1,5 +1,7 @@
 """Plotly figures of the net directional and walls charts, built from charts.aggregate."""
 
+from datetime import date, timedelta
+
 import plotly.graph_objects as go
 
 from ..rules.classification import RESISTANCE, SUPPORT
@@ -23,6 +25,25 @@ def empty_figure(message):
     fig = go.Figure()
     fig.update_layout(**BASE_LAYOUT, xaxis=dict(visible=False), yaxis=dict(visible=False),
                       annotations=[dict(text=message, showarrow=False, xref="paper", yref="paper", x=0.5, y=0.5)])
+    return fig
+
+
+def cumulative_pnl_figure(points):
+    """Cumulative P&L per closing date: a step line, since the total only changes when a position closes."""
+    if not points:
+        return empty_figure("No closed positions to show.")
+    dates, values = zip(*points)
+    fig = go.Figure()
+    fig.add_scatter(name="Cumulative P&L", x=list(dates), y=list(values), mode="lines+markers", showlegend=False,
+                    line=dict(shape="hv", width=2, color=COLORS["price"]), marker=dict(size=8, color=COLORS["price"]),
+                    hovertemplate="%{x}: %{y:+,.2f}<extra></extra>")
+    fig.update_layout(**BASE_LAYOUT)
+    fig.update_xaxes(title_text="Closing date", type="date", tickformat="%Y-%m-%d")
+    fig.update_yaxes(title_text="Cumulative P&L ($)", rangemode="tozero", zeroline=True, zerolinecolor="#9aa5b1")
+    if len(dates) == 1:     # with a single date, Plotly would zoom in to milliseconds
+        day = date.fromisoformat(dates[0])
+        margin = timedelta(days=3)
+        fig.update_xaxes(range=[(day - margin).isoformat(), (day + margin).isoformat()], dtick=86400000)
     return fig
 
 

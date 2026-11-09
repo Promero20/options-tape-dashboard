@@ -34,12 +34,13 @@ def page(state):
             html.Button("Reload data", id=ids.RELOAD, className="btn"),
         ]),
         html.Div(notices_banner(state), id=ids.NOTICES),
-        dcc.Tabs(id=ids.TABS, className="tabs", children=[
+        dcc.Tabs(id=ids.TABS, className="tabs", value=TABS[0].__name__.rsplit(".", 1)[-1], children=[
             dcc.Tab(label=tab.TITLE, value=tab.__name__.rsplit(".", 1)[-1], children=tab.layout(state))
             for tab in TABS
         ]),
         dcc.Store(id=ids.DATA_VERSION, data=0),
         dcc.Store(id=ids.EDITS_VERSION, data=0),
+        dcc.Store(id=ids.POSITIONS_VERSION, data=0),
     ])
 
 
@@ -52,8 +53,8 @@ def register(app, state):
 
     @app.callback(Output(ids.NOTICES, "children"), Output(ids.HEADER_INFO, "children"),
                   Input(ids.DATA_VERSION, "data"), Input(ids.EDITS_VERSION, "data"),
-                  prevent_initial_call=True)
-    def refresh_header(_data_version, _edits_version):
+                  Input(ids.POSITIONS_VERSION, "data"), prevent_initial_call=True)
+    def refresh_header(_data_version, _edits_version, _positions_version=0):
         return notices_banner(state), header_info(state)
 
     return {"reload_data": reload_data, "refresh_header": refresh_header}

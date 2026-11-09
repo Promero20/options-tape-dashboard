@@ -1,17 +1,16 @@
-"""Tab 3: real positions. Content arrives in phase 6."""
+"""Tab 3: real positions, linked to the operation they mimic (decisions 0031 and 0032)."""
 
-from dash import html
+from . import callbacks, view
 
 TITLE = "Positions"
 
 
 def layout(state):
-    return html.Div(className="panel placeholder", children=[
-        html.H4(TITLE),
-        html.P("Open positions linked to the operation they mimic, their history and the cumulative P&L. "
-               "Coming in phase 6.", className="muted"),
-    ])
+    return view.layout()
 
 
 def register(app, state):
-    return {}
+    return callbacks.register(app, state)
+
+
+__all__ = ["TITLE", "layout", "register"]
