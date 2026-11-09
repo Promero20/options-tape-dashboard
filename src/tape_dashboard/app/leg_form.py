@@ -9,8 +9,6 @@ from dash import dcc, html
 
 from .manual_legs import CALL, PUT
 
-DEBOUNCE_SECONDS = 0.6
-
 
 @dataclass(frozen=True)
 class LegFormIds:
@@ -45,13 +43,13 @@ def leg_fields(ids, with_strategy=True, with_preview=True):
                        inline=True, className="choices"),
         html.Div(className="leg-grid", children=[
             html.Div([html.Label("Strike", htmlFor=ids.strike),
-                      dcc.Input(id=ids.strike, type="number", min=0, step="any", debounce=DEBOUNCE_SECONDS)]),
+                      dcc.Input(id=ids.strike, type="number", min=0, step="any")]),
             html.Div([html.Label("Expiration", htmlFor=ids.exp_date),
                       dcc.DatePickerSingle(id=ids.exp_date, display_format="YYYY-MM-DD", first_day_of_week=1)]),
             html.Div([html.Label("Price", htmlFor=ids.price),
-                      dcc.Input(id=ids.price, type="number", min=0, step="any", debounce=DEBOUNCE_SECONDS)]),
+                      dcc.Input(id=ids.price, type="number", min=0, step="any")]),
             html.Div([html.Label("Size (contracts)", htmlFor=ids.size),
-                      dcc.Input(id=ids.size, type="number", min=1, step=1, debounce=DEBOUNCE_SECONDS)]),
+                      dcc.Input(id=ids.size, type="number", min=1, step=1)]),
         ]),
     ]
     if with_strategy:
