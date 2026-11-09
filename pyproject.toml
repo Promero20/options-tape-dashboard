@@ -34,6 +34,7 @@ packages = [
     "tape_dashboard.charts",
     "tape_dashboard.data",
     "tape_dashboard.edits",
+    "tape_dashboard.positions",
     "tape_dashboard.rules",
 ]
 
