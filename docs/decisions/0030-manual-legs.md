@@ -12,7 +12,7 @@ The specification has the missing leg added in tab 2, with the underlying alread
 - **One manual leg per operation.** The specification speaks of "the missing leg", and with a third leg the operation would be discarded anyway.
 - **The form starts from the known leg**: its type, expiration and size are filled in, and the user types the strike and the price. While it is being filled in, it shows the operation types that fit both legs and a preview of the result (structure, destination, strike and premium).
 - **The operation type is required**, with "Don't know" among the options. Without a type the manual leg has no side, and the operation would end up as an undetermined multi-leg without the user having decided it.
-- **Tab 2 lists only pending operations.** A completed operation is edited or deleted from its pop-up in tab 1, where it now appears.
+- **Tab 2 lists only pending operations.** A completed operation is edited or deleted from its pop-up in tab 1, where it now appears; the pop-up opens from the Direction cell or from the Edit button of the selected operation's panel.
 - **Deleting the manual leg also deletes the operation type** chosen with it, and the operation goes back to tab 2. Clearing only the type keeps the leg, and the operation becomes an undetermined multi-leg.
 - **Nothing is deleted silently.** If a stored leg can no longer be applied (for example, because it repeats a contract the rebuilt operation now has), the operation is pending again with a note that says why, and saving from tab 2 replaces that leg.
 

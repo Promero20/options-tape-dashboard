@@ -11,7 +11,7 @@ from .rows import OPTIONAL_COLUMNS, ROW_CLASS_RULES, column_defs
 
 RANGE, DATES, RANGE_NOTE = "ops-range", "ops-dates", "ops-range-note"
 COLUMNS, GRID, SUMMARY = "ops-columns", "ops-grid", "ops-summary"
-DETAIL = "ops-detail"
+DETAIL, EDIT = "ops-detail", "ops-edit"
 MODAL, MODAL_TITLE, MODAL_INFO, MODAL_LEGS = "ops-modal", "ops-modal-title", "ops-modal-info", "ops-modal-legs"
 DIRECTION_BOX, DIRECTION_INPUT = "ops-direction-box", "ops-direction"
 STRATEGY_BOX, STRATEGY_INPUT = "ops-strategy-box", "ops-strategy"
@@ -148,7 +148,10 @@ def layout(state):
         ]),
         html.Div(className="ops-side", children=[
             charts_panel(),
-            html.Div(id=DETAIL, className="panel", children=empty_detail()),
+            html.Div(className="panel detail-panel", children=[
+                html.Button("Edit", id=EDIT, className="btn detail-edit", style=HIDDEN),
+                html.Div(id=DETAIL, children=empty_detail()),
+            ]),
             html.Div(className="panel placeholder", children=[
                 html.H4("SPY GEX"),
                 html.P("Market context from the daily SPY GEX file: regime, gamma flip and main strikes. "

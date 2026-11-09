@@ -217,3 +217,24 @@ def test_deleting_the_manual_leg_sends_the_operation_back_to_tab_2(app):
     assert pending_ids(app, "2026-10-13") == [INCOMPLETE]
     rows, _, _ = ops.grid_content(app.tape_state, "custom", "2026-10-13", "2026-10-15")
     assert INCOMPLETE not in [r["id"] for r in rows]
+
+
+# --- the Edit button of the selected operation's panel -------------------------------------------
+
+def test_the_edit_button_opens_the_same_pop_up_as_the_direction_cell(app):
+    save(app)
+    from_button = ops.modal_action(app.tape_state, ops.view.EDIT, None, None, None, None, 5,
+                                   selected_id=INCOMPLETE)
+    assert modal_field(from_button, "style") == ops.view.SHOWN
+    assert modal_field(from_button, "editing") == modal_field(opened(app), "editing")
+    assert modal_field(from_button, "strike") == 130.0
+
+
+def test_the_edit_button_needs_a_selected_operation(app):
+    assert ops.modal_action(app.tape_state, ops.view.EDIT, None, None, None, None, 5) == ops.UNCHANGED
+
+
+def test_the_edit_button_only_shows_with_a_selection(app):
+    show_detail = app.tape_callbacks["show_detail"]
+    assert show_detail([], 0)[1] == ops.view.HIDDEN
+    assert show_detail([{"id": INCOMPLETE}], 0)[1] == ops.view.SHOWN_INLINE

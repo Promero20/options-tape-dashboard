@@ -128,17 +128,20 @@ def _save_manual_leg(state, editing_data, leg_values, strategy):
     return []
 
 
-def modal_action(state, trigger, cell, editing_data, direction, strategy, version, leg_values=(None,) * 5):
+def modal_action(state, trigger, cell, editing_data, direction, strategy, version, leg_values=(None,) * 5,
+                 selected_id=None):
     """
-    Opens the editor on a click in the Direction column; saves, clears or
-    closes it. For an operation completed by hand it also saves or deletes
-    the manual leg (decision 0030).
+    Opens the editor on a click in the Direction column or on the selected
+    operation's Edit button; saves, clears or closes it. For an operation
+    completed by hand it also saves or deletes the manual leg (decision 0030).
     """
     version = version or 0
     if trigger == view.GRID:
         if not cell or cell.get("colId") != "direction" or not cell.get("rowId"):
             return UNCHANGED
         return open_editor(state, cell["rowId"])
+    if trigger == view.EDIT:
+        return open_editor(state, selected_id) if selected_id else UNCHANGED
     if not editing_data:
         return _closed(no_update)
     kind, operation_id = editing_data["kind"], editing_data["id"]
@@ -192,23 +195,25 @@ def register(app, state):
     def refresh_grid(preset, start, end, _data_version, _edits_version):
         return grid_content(state, preset, start, end)
 
-    @app.callback(Output(view.DETAIL, "children"),
+    @app.callback(Output(view.DETAIL, "children"), Output(view.EDIT, "style"),
                   Input(view.GRID, "selectedRows"), Input(ids.EDITS_VERSION, "data"))
     def show_detail(selected, _edits_version):
-        return detail_content(state, selected[0]["id"] if selected else None)
+        return (detail_content(state, selected[0]["id"] if selected else None),
+                view.SHOWN_INLINE if selected else view.HIDDEN)
 
     @app.callback(
         [Output(component, prop) for component, prop in MODAL_OUTPUTS],
         Input(view.GRID, "cellClicked"), Input(view.SAVE, "n_clicks"), Input(view.CLEAR, "n_clicks"),
-        Input(view.DELETE_LEG, "n_clicks"), Input(view.CLOSE, "n_clicks"),
+        Input(view.DELETE_LEG, "n_clicks"), Input(view.CLOSE, "n_clicks"), Input(view.EDIT, "n_clicks"),
         State(view.EDITING, "data"), State(view.DIRECTION_INPUT, "value"), State(view.STRATEGY_INPUT, "value"),
         State(ids.EDITS_VERSION, "data"), *[State(c, p) for c, p in view.LEG.leg_values],
+        State(view.GRID, "selectedRows"),
         prevent_initial_call=True,
     )
-    def handle_modal(cell, _save, _clear, _delete, _close, editing_data, direction, strategy, version,
-                     option_type, strike, exp_date, price, size):
+    def handle_modal(cell, _save, _clear, _delete, _close, _edit, editing_data, direction, strategy, version,
+                     option_type, strike, exp_date, price, size, selected):
         return modal_action(state, ctx.triggered_id, cell, editing_data, direction, strategy, version,
-                            (option_type, strike, exp_date, price, size))
+                            (option_type, strike, exp_date, price, size), selected[0]["id"] if selected else None)
 
     @app.callback(
         Output(view.STRATEGY_INPUT, "options", allow_duplicate=True), Output(view.LEG.preview, "children"),
