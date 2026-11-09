@@ -108,6 +108,12 @@ def test_leg_rows_mark_manual_legs_and_sides(dataset):
     assert rows[1]["aggressiveness"] is None and rows[1]["measured_side"] == "undetermined"
 
 
+def test_the_column_that_opens_the_pop_up_is_always_visible():
+    columns = column_defs()
+    assert [col["field"] for col in columns[:3]] == ["symbol", "direction", "flags"]
+    assert columns[1]["pinned"] == "left"
+
+
 def test_optional_columns_are_hidden_until_requested():
     hidden = {col["field"]: col.get("hide", False) for col in column_defs()}
     assert hidden["id"] and hidden["script_direction"] and not hidden["symbol"]

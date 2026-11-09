@@ -82,10 +82,16 @@ def number_format(decimals):
     return {"function": f"params.value == null ? '' : d3.format(',.{decimals}f')(params.value)"}
 
 
+# Direction is pinned because it opens the pop-up: it has to be visible however narrow the list is.
 COLUMN_DEFS = [
+    {"field": "symbol", "headerName": "Symbol", "pinned": "left", "minWidth": 90},
+    {"field": "direction", "headerName": "Direction ✎", "pinned": "left", "cellClass": "cell-editable",
+     "headerTooltip": "Click a cell to correct the direction or the operation type, or to edit a manual leg",
+     "valueFormatter": {"function": "params.value || '—'"},
+     "cellClassRules": {"dir-bull": "params.value === 'bull'", "dir-bear": "params.value === 'bear'"}},
+    {"field": "flags", "headerName": "Flags", "tooltipField": "notes", "minWidth": 80},
     {"field": "capture", "headerName": "Capture", "minWidth": 110},
     {"field": "trade_date", "headerName": "Trade date", "minWidth": 110},
-    {"field": "symbol", "headerName": "Symbol", "pinned": "left", "minWidth": 90},
     {"field": "structure", "headerName": "Structure", "minWidth": 150},
     {"field": "strike", "headerName": "Strike"},
     {"field": "expiration", "headerName": "Expiration", "minWidth": 120},
@@ -95,15 +101,11 @@ COLUMN_DEFS = [
      "type": "rightAligned", "valueFormatter": number_format(2)},
     {"field": "aggressiveness", "headerName": "Aggr.", "filter": "agNumberColumnFilter",
      "type": "rightAligned", "valueFormatter": number_format(2)},
-    {"field": "direction", "headerName": "Direction ✎", "cellClass": "cell-editable",
-     "headerTooltip": "Click a cell to correct the direction or the operation type",
-     "cellClassRules": {"dir-bull": "params.value === 'bull'", "dir-bear": "params.value === 'bear'"}},
     {"field": "destination", "headerName": "Destination", "minWidth": 140},
     {"field": "wall", "headerName": "Wall"},
     {"field": "conditions", "headerName": "Conditions", "minWidth": 110},
     {"field": "start", "headerName": "Start", "minWidth": 110},
     {"field": "end", "headerName": "End", "minWidth": 110},
-    {"field": "flags", "headerName": "Flags", "tooltipField": "notes", "minWidth": 80},
     {"field": "id", "headerName": "ID", "hide": True, "minWidth": 260},
     {"field": "script_direction", "headerName": "Script direction", "hide": True},
 ]
