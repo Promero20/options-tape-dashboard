@@ -156,14 +156,43 @@ The interface allows one manual leg per operation, always saved together with an
 
 ## Positions
 
-To be defined in phase 6, in the same user-data folder.
+SQLite file `positions.sqlite` in the user-data folder, outside git and outside the pipeline's data folder ([decision 0031](decisions/0031-positions-model-and-pnl.md)). A position can point to an operation ID. If the ID no longer exists, the link is shown as an orphan and is never deleted.
+
+**`positions`**: one row per position.
+
+| Column | Type | Content |
+|---|---|---|
+| `id` | integer, key | Position identifier |
+| `opened_on` | ISO date | Opening date |
+| `commissions` | number ≥ 0 | Total of the position, opening and closing |
+| `notes` | text | Free notes |
+| `operation_id` | text or null | ID of the operation it mimics |
+| `source` | text | Where it comes from; `manual` for now |
+| `external_id` | text or null | Its ID in `source`; unique per source, for a future import |
+| `created_at`, `updated_at` | ISO date and time | |
+
+**`position_legs`**: the legs of each position.
+
+| Column | Type | Content |
+|---|---|---|
+| `id` | integer, key | Leg identifier |
+| `position_id` | integer | Position it belongs to; deleted with it |
+| `symbol` | text | Underlying |
+| `option_type` | `call` / `put` | Type |
+| `strike` | number > 0 | Strike |
+| `exp_date` | ISO date | Expiration, not before the opening date |
+| `side` | `buy` / `sell` | Side at the opening |
+| `quantity` | integer > 0 | Contracts |
+| `entry_price` | number ≥ 0 | Entry price |
+| `exit_date` | ISO date or null | Closing date, not before the opening date |
+| `exit_price` | number ≥ 0 or null | Closing price; set together with `exit_date` |
 
 ## Configuration
 
 | Path | Environment variable | Key in `config.toml` | Default |
 |---|---|---|---|
 | Pipeline data | `TAPE_DATA_DIR` | `[paths] data_dir` | `../tape_data` |
-| User data | `TAPE_USER_DATA_DIR` | `[paths] user_data_dir` | `./user_data` |
+| User data (manual edits and positions) | `TAPE_USER_DATA_DIR` | `[paths] user_data_dir` | `./user_data` |
 | File where the pipeline declares the script hash (optional) | `TAPE_EXPECTED_HASH_FILE` | `[pipeline] expected_hash_file` | not set: no check |
 
 The environment variable takes precedence. Relative paths in `config.toml` are resolved from the repository root. The declared-hash check is described in [decision 0026](decisions/0026-declared-script-hash-check.md). The template is [`config.example.toml`](../config.example.toml).

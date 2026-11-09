@@ -29,6 +29,7 @@ flowchart LR
             AP[apply<br/>manual legs, corrections, orphans]
         end
         CH[tape_dashboard.charts<br/>aggregate + figures]
+        POS[tape_dashboard.positions<br/>store + pnl]
         subgraph app["tape_dashboard.app"]
             STATE[state<br/>dataset in memory, reload]
             W[warnings<br/>banner]
@@ -38,7 +39,7 @@ flowchart LR
             end
             TAB2[tabs.incomplete<br/>pending list + form]
             ML[manual_legs + leg_form<br/>shared by tabs 1 and 2]
-            TABS[tabs.positions<br/>placeholder]
+            TAB3[tabs.positions<br/>lists + forms]
         end
         REP[report<br/>CLI]
     end
@@ -67,7 +68,10 @@ flowchart LR
     ML --> CB & TAB2
     AP --> TAB2
     TAB2 -- manual legs --> ST
-    CB & W & TAB2 & TABS <--> B
+    U <--> POS <--> TAB3
+    CH --> TAB3
+    POS --> W
+    CB & W & TAB2 & TAB3 <--> B
     D & V & Q & AP --> REP
 ```
 
@@ -91,6 +95,8 @@ Anything that does not fit becomes an `Issue` attached to its file: errors (the 
 
 **Charts** (`tape_dashboard.charts`). `aggregate` turns classified operations into what the charts show: net bars by expiration or strike, the separate totals and the walls by strike, with the ITM flag ([business rules](business-rules.md#6-charts)). It is pure Python, without Dash or Plotly. `figures` builds the Plotly figures from that. The reference price comes from `Dataset.price_on_or_before`.
 
+**Positions** (`tape_dashboard.positions`). `store` keeps the user's real positions and their legs in their own SQLite file; every write is one transaction and validates first. `pnl` computes, as pure functions, each position's status, P&L, percentage and days held, and the cumulative series ([business rules](business-rules.md#7-positions-and-pl)). The tab only reads through the store, so a future read-only import can feed it.
+
 **Application** (`tape_dashboard.app`). A Dash app, started with `python -m tape_dashboard`, that only listens on 127.0.0.1 ([decision 0023](decisions/0023-ui-stack.md)):
 
 - `state.AppState` holds what every callback shares: the `Dataset`, loaded once at start-up and re-read by the Reload button, and the edits store, read again on every request so that a saved correction shows at once.
@@ -100,6 +106,7 @@ Anything that does not fit becomes an `Issue` attached to its file: errors (the 
 - Two counters in `dcc.Store` (`data-version`, `edits-version`) tell the callbacks when to refresh: Reload increments the first, saving a correction the second. Grid rows carry a stable ID (`getRowId`), so a refresh updates them in place instead of rebuilding the grid.
 - `manual_legs` holds the logic of the manual leg that completes a pending operation: reading the form, building the completed operation with the script, the operation types that fit, the preview and saving, which validates everything before writing. `leg_form` builds its fields with an ID prefix, so tab 2's form and tab 1's pop-up share them ([decision 0030](decisions/0030-manual-legs.md)).
 - `tabs/incomplete` is tab 2: a day selector, the pending operations of that capture and the form. Saving increments `edits-version`, so the operation leaves the list and appears in tab 1.
+- `tabs/positions` is tab 3: open positions and history, the selected position, the two forms and the cumulative chart, which reads the rows left by the history's filters ([decision 0032](decisions/0032-positions-tab.md)). Changes increment `positions-version`.
 - The editing pop-up is plain Dash with local CSS: no component library or external stylesheet ([decision 0027](decisions/0027-editing-pop-up-without-extra-dependencies.md)).
 
 ## Data layer design choices

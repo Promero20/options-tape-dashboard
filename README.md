@@ -8,7 +8,7 @@ A local Python dashboard to review the daily options flow. It reads the CSV file
 
 The dashboard **only reads** the data folder, never modifies it, and never sends orders.
 
-> **Status:** phases 0 to 5 are done: the level-3 script was refactored under a byte-for-byte regression test, the data layer reads, validates and rebuilds every capture, the classification rules and manual edits are in place, and the application runs with the operations list, the net directional and walls charts, and the tab to complete operations with a missing leg. The positions tab and the GEX panel come in the next phases. The full plan is in [docs/plan.md](docs/plan.md).
+> **Status:** phases 0 to 6 are done: the level-3 script was refactored under a byte-for-byte regression test, the data layer reads, validates and rebuilds every capture, the classification rules and manual edits are in place, and the application runs with the operations list, the net directional and walls charts, the tab to complete operations with a missing leg, and the positions tab with its history and P&L. The GEX panel comes next. The full plan is in [docs/plan.md](docs/plan.md).
 
 ## Input files
 
@@ -37,6 +37,7 @@ src/tape_dashboard/          dashboard code
   rules/                     leg sides, operation types and classification
   edits/                     manual edits: SQLite store and how they are applied
   charts/                    what the charts show and their Plotly figures
+  positions/                 real positions: SQLite store and P&L
   app/                       Dash application: state, warnings, page layout and one package per tab
   __main__.py                entry point: python -m tape_dashboard
   report.py                  command-line data report
@@ -81,7 +82,9 @@ The **Operations** tab has:
 
 The **Incomplete legs** tab lists the multi-leg operations of one capture that are above the threshold but have only one captured leg ([decision 0013](docs/decisions/0013-tab-2-scope.md)). Selecting one opens a form that starts from the known leg: type the missing leg's strike and price, adjust the rest if needed, and pick the operation type from those that fit. The form shows where the operation will go before saving; once saved, it moves to the Operations tab ([decision 0030](docs/decisions/0030-manual-legs.md)).
 
-The positions tab and the GEX panel are placeholders until their phases.
+The **Positions** tab records real positions, entered by hand. A position has up to four legs and can be linked to the operation it mimics, either from the form or with the **New position** button next to Edit in the Operations tab, which fills in the link and each leg's contract and side ([decision 0032](docs/decisions/0032-positions-tab.md)). Each leg closes whole, with its own date and price. Closed positions go to the history, with their P&L in $ and %, days held and the data of the source operation, all filterable; the cumulative P&L chart follows those filters ([business rules](docs/business-rules.md#7-positions-and-pl)). Positions are stored in the user-data folder, and the dashboard never sends orders.
+
+The GEX panel is a placeholder until its phase.
 
 The data folder and the user-data folder are set with the `TAPE_DATA_DIR` and `TAPE_USER_DATA_DIR` environment variables, or with a `config.toml` file (template in [`config.example.toml`](config.example.toml)). That file can also point to where the pipeline declares the script hash it expects, so that the dashboard warns if it does not match ([decision 0026](docs/decisions/0026-declared-script-hash-check.md)).
 

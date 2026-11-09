@@ -188,3 +188,18 @@ The underlying's price in the latest capture up to the end of the range whose le
 ### Every dollar in one place
 
 Each operation has a single destination, so its premium lands in exactly one place: a net bar, an undetermined marker, a wall or one of the two totals. The tests check it for every underlying in the real data.
+
+## 7. Positions and P&L
+
+Implementation: [`src/tape_dashboard/positions/`](../src/tape_dashboard/positions/). Decisions [0031](decisions/0031-positions-model-and-pnl.md) and [0032](decisions/0032-positions-tab.md).
+
+- A position is **open** until one of its legs closes, **partially closed** while only some are, and **closed** once all of them are. Only closed positions go to the history and the chart.
+- Each leg closes whole, with its own date and price. To close part of a leg, split it in two.
+- **P&L of a leg**: (exit − entry) × quantity × 100, with the sign reversed if it was sold.
+- **P&L of a position**: the sum of its legs minus its commissions.
+- **P&L in %**: the position's P&L over the absolute net premium at the opening (the debit paid or the credit received). If that premium is 0, no percentage is shown.
+- **Closing date**: that of the last leg to close. **Days in the position**: calendar days from the opening to that date.
+- Open positions have no P&L, because there are no live prices.
+- Open legs past their expiration are flagged and never closed automatically.
+
+**Example, with invented figures.** A debit spread bought on 1 October: one 100 call at 5.00 and one 110 call sold at 3.00, a debit of 2.00, or $200. Commissions, $10. It closes on 11 October with the call at 7.00 and the short call at 4.00. The legs make +$200 and −$100; the P&L is $200 − $100 − $10 = **+$90**, which is **+45%** of the $200 paid, in **10 days**.

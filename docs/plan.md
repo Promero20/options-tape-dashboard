@@ -10,7 +10,7 @@ Each phase ends with the tests passing, the documentation up to date and a commi
 | 3 | Application and tab 1: list | **done** |
 | 4 | Tab 1: net directional and walls charts | **done** |
 | 5 | Tab 2: incomplete legs | **done** |
-| 6 | Tab 3: positions | pending |
+| 6 | Tab 3: positions | **done** |
 | 7 | SPY GEX (new input file and panel) | pending |
 | 8 | Visual polish: readability and look of the whole interface | pending |
 
@@ -73,8 +73,15 @@ It also includes the script change that drops cancellations ([0015](decisions/00
 
 **Done when:** the manual-leg logic, tab 2's controllers and the pop-up are tested on synthetic data; every real pending operation can be completed in the form; and a real operation is completed, shown in tab 1, and sent back to tab 2 over HTTP. ✔
 
-## Phases 6 to 8
+## Phase 6: tab 3, positions
 
-- **6**: positions, history and P&L, with a model ready for a future read-only import from tastytrade.
+- Own store and pure P&L calculation (`tape_dashboard.positions`), with a model ready for a future read-only import ([0031](decisions/0031-positions-model-and-pnl.md)).
+- Tab 3: open positions, history with the source operation's data, the selected position, forms to create, edit and close, and a cumulative P&L chart that follows the history's filters ([0032](decisions/0032-positions-tab.md)).
+- "New position" button in tab 1, which fills in the form from the selected operation.
+
+**Done when:** the store, the P&L and the tab's controllers are tested with invented figures, and the whole cycle (create, edit, close leg by leg, history, filtered chart, delete, start from an operation) works in a real browser on a temporary folder. ✔
+
+## Phases 7 and 8
+
 - **7**: SPY GEX file and its panel.
 - **8**: visual polish, once everything works: readability, layout and look of every tab. Until then, styling stays minimal.
