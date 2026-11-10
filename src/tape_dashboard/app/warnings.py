@@ -50,9 +50,10 @@ def collect(state):
 
     for position in state.positions.all():
         name = f"Position {position.id} ({position.legs[0].symbol})"
-        if position.operation_id and state.operation(position.operation_id) is None:
-            notices.append(Notice(WARNING, f"{name} is linked to operation {position.operation_id}, which no longer "
-                                           f"exists. The link is kept, not deleted."))
+        for operation_id in position.operation_ids:
+            if state.operation(operation_id) is None:
+                notices.append(Notice(WARNING, f"{name} is linked to operation {operation_id}, which no longer "
+                                               f"exists. The link is kept, not deleted."))
         expired = expired_legs(position, state.today())
         if expired:
             notices.append(Notice(WARNING, f"{name} has {len(expired)} open leg(s) past their expiration: "

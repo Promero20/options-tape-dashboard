@@ -97,8 +97,12 @@ table.legs th, table.legs td { border-bottom: 1px solid var(--border); padding: 
 .pos-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 12px; }
 .pos-fields label, .pos-close-row label { font-weight: 600; display: block; margin: 10px 0 4px; }
 .pos-fields input, .pos-fields textarea { width: 100%; box-sizing: border-box; padding: 5px 6px; }
+.modal-box.wide { max-width: 1040px; }
 .pos-leg-row { display: grid; grid-template-columns: 96px 96px minmax(0, 1fr) 150px minmax(0, 1fr) minmax(0, 1fr);
   gap: 6px; align-items: center; margin-top: 6px; }
+.pos-legs.with-exits .pos-leg-row { grid-template-columns: 104px 104px minmax(0, 1fr) 140px minmax(0, 1fr)
+  minmax(0, 1fr) 140px minmax(0, 1fr); }
+.pos-legs:not(.with-exits) .exit-field { display: none; }
 .pos-leg-row input { width: 100%; box-sizing: border-box; padding: 5px 6px; }
 .pos-leg-head { font-weight: 600; font-size: 13px; }
 .pos-close-row { display: grid; grid-template-columns: minmax(0, 1fr) 160px 110px; gap: 8px; align-items: center;

@@ -19,7 +19,7 @@ def leg(side="buy", strike=100.0, quantity=2, entry=2.0, option_type="call", exp
 
 
 def position(*legs, commissions=0.0, opened=OPENED):
-    return Position(1, opened, commissions, "", None, "manual", None, tuple(legs))
+    return Position(1, opened, commissions, "", (), "manual", None, tuple(legs))
 
 
 @pytest.fixture
@@ -30,10 +30,10 @@ def store(tmp_path):
 # --- store --------------------------------------------------------------------------------
 
 def test_create_and_read(store):
-    new = store.create(OPENED, [leg(), leg("sell", 110.0, entry=1.0)], 5.0, "a note", "OP-1")
+    new = store.create(OPENED, [leg(), leg("sell", 110.0, entry=1.0)], 5.0, "a note", ["OP-1"])
     saved = store.get(new)
-    assert (saved.opened_on, saved.commissions, saved.notes, saved.operation_id, saved.source) == \
-        (OPENED, 5.0, "a note", "OP-1", "manual")
+    assert (saved.opened_on, saved.commissions, saved.notes, saved.operation_ids, saved.source) == \
+        (OPENED, 5.0, "a note", ("OP-1",), "manual")
     assert [(l.symbol, l.side, l.strike, l.closed) for l in saved.legs] == [("XYZ", "buy", 100.0, False),
                                                                             ("XYZ", "sell", 110.0, False)]
 
@@ -46,10 +46,10 @@ def test_positions_are_listed_most_recent_first(store):
 
 def test_update_replaces_data_and_legs(store):
     new = store.create(OPENED, [leg(), leg("sell", 110.0)])
-    store.update(new, "2026-10-02", [leg(strike=95.0, closed="2026-10-05", price=3.0)], 1.5, "edited", "OP-2")
+    store.update(new, "2026-10-02", [leg(strike=95.0, closed="2026-10-05", price=3.0)], 1.5, "edited", ["OP-2"])
     saved = store.get(new)
     assert (saved.opened_on, saved.commissions, saved.notes) == ("2026-10-02", 1.5, "edited")
-    assert saved.operation_id == "OP-2"
+    assert saved.operation_ids == ("OP-2",)
     assert [(l.strike, l.exit_date, l.exit_price) for l in saved.legs] == [(95.0, "2026-10-05", 3.0)]
     with pytest.raises(KeyError):
         store.update(999, OPENED, [leg()])
@@ -64,12 +64,24 @@ def test_closing_and_reopening_legs(store):
     assert [(l.exit_date, l.exit_price) for l in store.get(new).legs] == [(None, None), ("2026-10-06", 0.5)]
 
 
-def test_delete_removes_the_legs_too(store):
-    new = store.create(OPENED, [leg()])
+def test_delete_removes_the_legs_and_links_too(store):
+    new = store.create(OPENED, [leg()], operation_ids=["OP-1"])
     store.delete(new)
     assert store.get(new) is None
     with sqlite3.connect(store.path) as db:
         assert db.execute("SELECT COUNT(*) FROM position_legs").fetchone() == (0,)
+        assert db.execute("SELECT COUNT(*) FROM position_links").fetchone() == (0,)
+
+
+def test_several_operations_can_be_linked(store):
+    new = store.create(OPENED, [leg()], operation_ids=["OP-2", "OP-1", "OP-2", ""])
+    assert store.get(new).operation_ids == ("OP-2", "OP-1")             # in order, without repeats or blanks
+    store.update(new, OPENED, [leg()], operation_ids=["OP-3"])
+    assert store.get(new).operation_ids == ("OP-3",)
+    store.update(new, OPENED, [leg()])
+    assert store.get(new).operation_ids == ()
+    store.update(new, OPENED, [leg()], operation_ids="OP-4")             # one ID given as text
+    assert store.get(new).operation_ids == ("OP-4",)
 
 
 def test_the_same_contract_can_appear_twice_to_close_part_of_a_leg(store):
@@ -214,3 +226,50 @@ def test_cumulative_series():
     closes = [("2026-10-05", 100.0), ("2026-10-01", -40.0), ("2026-10-05", 10.0)]
     assert pnl.cumulative(closes) == [("2026-10-01", -40.0), ("2026-10-05", 70.0)]
     assert pnl.cumulative([]) == []
+
+
+# --- default commissions --------------------------------------------------------------------
+
+@pytest.mark.parametrize("quantities, expected", [([3], 3.0), ([25], 10.0), ([5, 20], 15.0), ([], 0.0)])
+def test_commissions_are_one_dollar_per_contract_up_to_ten_per_leg(quantities, expected):
+    assert pnl.opening_commissions(quantities) == expected
+
+
+# --- files written with a single link ---------------------------------------------------------
+
+SINGLE_LINK_SCHEMA = """
+CREATE TABLE positions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, opened_on TEXT NOT NULL,
+    commissions REAL NOT NULL DEFAULT 0 CHECK (commissions >= 0), notes TEXT NOT NULL DEFAULT '',
+    operation_id TEXT, source TEXT NOT NULL DEFAULT 'manual', external_id TEXT,
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE (source, external_id));
+CREATE TABLE position_legs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, position_id INTEGER NOT NULL REFERENCES positions (id) ON DELETE CASCADE,
+    symbol TEXT NOT NULL, option_type TEXT NOT NULL, strike REAL NOT NULL, exp_date TEXT NOT NULL, side TEXT NOT NULL,
+    quantity INTEGER NOT NULL, entry_price REAL NOT NULL, exit_date TEXT, exit_price REAL);
+INSERT INTO positions VALUES (1, '2026-10-01', 4.0, 'linked', 'OP-1', 'manual', NULL, 't', 't');
+INSERT INTO positions VALUES (2, '2026-10-02', 0.0, 'not linked', NULL, 'manual', NULL, 't', 't');
+INSERT INTO position_legs VALUES (1, 1, 'XYZ', 'call', 100.0, '2026-12-18', 'buy', 2, 2.0, '2026-10-11', 3.0);
+INSERT INTO position_legs VALUES (2, 2, 'XYZ', 'put', 90.0, '2026-12-18', 'sell', 1, 1.0, NULL, NULL);
+"""
+
+
+def test_a_file_with_single_links_is_migrated_and_kept_as_a_copy(tmp_path):
+    path = tmp_path / "positions.sqlite"
+    with sqlite3.connect(path) as db:
+        db.executescript(SINGLE_LINK_SCHEMA)
+
+    store = PositionStore(path)
+    second, first = store.all()
+    assert (first.id, first.operation_ids, first.notes, first.commissions) == (1, ("OP-1",), "linked", 4.0)
+    assert (second.operation_ids, second.legs[0].side) == ((), "sell")
+    assert (first.legs[0].exit_date, first.legs[0].exit_price) == ("2026-10-11", 3.0)
+    with sqlite3.connect(path) as db:
+        assert "operation_id" not in [row[1] for row in db.execute("PRAGMA table_info(positions)")]
+
+    backup = tmp_path / "positions.before-links.sqlite"
+    with sqlite3.connect(backup) as db:
+        assert db.execute("SELECT operation_id FROM positions ORDER BY id").fetchall() == [("OP-1",), (None,)]
+
+    again = PositionStore(path)                         # opening it again changes nothing
+    assert again.all() == store.all()

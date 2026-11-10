@@ -3,9 +3,11 @@ Real positions, in their own SQLite file in the user-data folder (decision 0031)
 
 Every write is one transaction and validates first, so an invalid edit leaves
 nothing behind. `source` and `external_id` are there for a future read-only
-import: an imported position can be recognised instead of duplicated.
+import: an imported position can be recognised instead of duplicated. A
+position can be linked to several operations (decision 0033).
 """
 
+import shutil
 import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -23,7 +25,6 @@ CREATE TABLE IF NOT EXISTS positions (
     opened_on    TEXT NOT NULL,
     commissions  REAL NOT NULL DEFAULT 0 CHECK (commissions >= 0),
     notes        TEXT NOT NULL DEFAULT '',
-    operation_id TEXT,
     source       TEXT NOT NULL DEFAULT 'manual',
     external_id  TEXT,
     created_at   TEXT NOT NULL,
@@ -43,6 +44,11 @@ CREATE TABLE IF NOT EXISTS position_legs (
     exit_date    TEXT,
     exit_price   REAL CHECK (exit_price >= 0),
     CHECK ((exit_date IS NULL) = (exit_price IS NULL))
+);
+CREATE TABLE IF NOT EXISTS position_links (
+    position_id  INTEGER NOT NULL REFERENCES positions (id) ON DELETE CASCADE,
+    operation_id TEXT NOT NULL,
+    PRIMARY KEY (position_id, operation_id)
 );
 CREATE INDEX IF NOT EXISTS legs_by_position ON position_legs (position_id);
 """
@@ -72,7 +78,7 @@ class Position:
     opened_on: str          # ISO date
     commissions: float      # total of the position: opening and closing
     notes: str
-    operation_id: str | None
+    operation_ids: tuple    # operations it mimics, in the order they were linked
     source: str
     external_id: str | None
     legs: tuple
@@ -136,6 +142,13 @@ def _exit_problems(exit_date, exit_price, opened_on):
     return problems
 
 
+def _insert_links(db, position_id, operation_ids):
+    if isinstance(operation_ids, str):      # one ID, not a sequence of characters
+        operation_ids = (operation_ids,)
+    db.executemany("INSERT INTO position_links (position_id, operation_id) VALUES (?, ?)",
+                   [(position_id, operation_id) for operation_id in dict.fromkeys(i for i in operation_ids if i)])
+
+
 def _now():
     return datetime.now().isoformat(timespec="seconds")
 
@@ -153,8 +166,38 @@ class PositionStore:
     def __init__(self, path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        if self.path.is_file():
+            self._migrate_single_links()
         with self._db() as db:
             db.executescript(SCHEMA)
+
+    def _migrate_single_links(self):
+        """
+        Files written before decision 0033 keep one link in positions.operation_id.
+        It moves to position_links in one transaction, after a copy of the file is
+        kept next to it; the copy is left there.
+        """
+        with self._db() as db:
+            columns = [row[1] for row in db.execute("PRAGMA table_info(positions)")]
+        if "operation_id" not in columns:
+            return
+        backup = self.path.with_name(f"{self.path.stem}.before-links{self.path.suffix}")
+        if not backup.exists():
+            shutil.copy2(self.path, backup)
+        db = sqlite3.connect(self.path, isolation_level=None)
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("CREATE TABLE IF NOT EXISTS position_links (position_id INTEGER NOT NULL REFERENCES positions "
+                       "(id) ON DELETE CASCADE, operation_id TEXT NOT NULL, PRIMARY KEY (position_id, operation_id))")
+            db.execute("INSERT OR IGNORE INTO position_links (position_id, operation_id) SELECT id, operation_id "
+                       "FROM positions WHERE operation_id IS NOT NULL AND operation_id <> ''")
+            db.execute("ALTER TABLE positions DROP COLUMN operation_id")
+            db.execute("COMMIT")
+        except BaseException:
+            db.execute("ROLLBACK")
+            raise
+        finally:
+            db.close()
 
     @contextmanager
     def _db(self):
@@ -166,32 +209,34 @@ class PositionStore:
         finally:
             db.close()
 
-    def create(self, opened_on, legs, commissions=0.0, notes="", operation_id=None, source=MANUAL, external_id=None):
+    def create(self, opened_on, legs, commissions=0.0, notes="", operation_ids=(), source=MANUAL, external_id=None):
         errors = check(opened_on, legs, commissions)
         if errors:
             raise ValueError(" ".join(errors))
         now = _now()
         with self._db() as db:
             cursor = db.execute(
-                "INSERT INTO positions (opened_on, commissions, notes, operation_id, source, external_id, "
-                "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (opened_on, float(commissions), notes, operation_id, source, external_id, now, now))
+                "INSERT INTO positions (opened_on, commissions, notes, source, external_id, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)", (opened_on, float(commissions), notes, source, external_id, now, now))
             _insert_legs(db, cursor.lastrowid, legs)
+            _insert_links(db, cursor.lastrowid, operation_ids)
             return cursor.lastrowid
 
-    def update(self, position_id, opened_on, legs, commissions=0.0, notes="", operation_id=None):
-        """Replaces the position's data and legs; each leg carries its own close, if it has one."""
+    def update(self, position_id, opened_on, legs, commissions=0.0, notes="", operation_ids=()):
+        """Replaces the position's data, legs and links; each leg carries its own close, if it has one."""
         errors = check(opened_on, legs, commissions)
         if errors:
             raise ValueError(" ".join(errors))
         with self._db() as db:
             cursor = db.execute(
-                "UPDATE positions SET opened_on = ?, commissions = ?, notes = ?, operation_id = ?, updated_at = ? "
-                "WHERE id = ?", (opened_on, float(commissions), notes, operation_id, _now(), position_id))
+                "UPDATE positions SET opened_on = ?, commissions = ?, notes = ?, updated_at = ? WHERE id = ?",
+                (opened_on, float(commissions), notes, _now(), position_id))
             if cursor.rowcount == 0:
                 raise KeyError(f"position {position_id} does not exist")
             db.execute("DELETE FROM position_legs WHERE position_id = ?", (position_id,))
+            db.execute("DELETE FROM position_links WHERE position_id = ?", (position_id,))
             _insert_legs(db, position_id, legs)
+            _insert_links(db, position_id, operation_ids)
 
     def set_exits(self, position_id, exits):
         """Closes or reopens legs: {leg id: (exit date, exit price), or None to reopen it}."""
@@ -224,9 +269,13 @@ class PositionStore:
             for row in db.execute("SELECT position_id, symbol, option_type, strike, exp_date, side, quantity, "
                                   "entry_price, exit_date, exit_price, id FROM position_legs ORDER BY id"):
                 legs.setdefault(row[0], []).append(Leg(*row[1:]))
-            return [Position(*row, tuple(legs.get(row[0], ()))) for row in db.execute(
-                "SELECT id, opened_on, commissions, notes, operation_id, source, external_id FROM positions "
-                "ORDER BY opened_on DESC, id DESC")]
+            links = {}
+            for position_id, operation_id in db.execute(
+                    "SELECT position_id, operation_id FROM position_links ORDER BY rowid"):
+                links.setdefault(position_id, []).append(operation_id)
+            return [Position(*row[:4], tuple(links.get(row[0], ())), *row[4:], tuple(legs.get(row[0], ())))
+                    for row in db.execute("SELECT id, opened_on, commissions, notes, source, external_id "
+                                          "FROM positions ORDER BY opened_on DESC, id DESC")]
 
     def get(self, position_id):
         return next((p for p in self.all() if p.id == position_id), None)

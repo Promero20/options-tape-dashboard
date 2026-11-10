@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from dash import dcc, html
 
+from ....positions.pnl import opening_commissions
 from ....positions.store import Leg, check
 from ....rules.sides import BUY, SELL
 from ...manual_legs import CALL, PUT, iso_date_or_none, number_or_none
@@ -11,19 +12,23 @@ from ...manual_legs import CALL, PUT, iso_date_or_none, number_or_none
 HIDDEN, SHOWN = {"display": "none"}, {"display": "block"}
 ROW_SHOWN = {"display": "grid"}
 LEG_SLOTS = 4
+LEGS_CLASS, LEGS_WITH_EXITS_CLASS = "pos-legs", "pos-legs with-exits"
 
-FORM, FORM_TITLE, FORM_SAVE, FORM_CANCEL, FORM_MESSAGE, EDITING = (
-    "pos-form", "pos-form-title", "pos-form-save", "pos-form-cancel", "pos-form-message", "pos-editing")
-OPENED, SYMBOL, COMMISSIONS, NOTES, OPERATION = (
-    "pos-opened", "pos-symbol", "pos-commissions", "pos-notes", "pos-operation")
+FORM, FORM_TITLE, FORM_SAVE, FORM_CANCEL, FORM_MESSAGE, EDITING, LEGS = (
+    "pos-form", "pos-form-title", "pos-form-save", "pos-form-cancel", "pos-form-message", "pos-editing", "pos-legs")
+OPENED, SYMBOL, COMMISSIONS, NOTES, OPERATIONS = (
+    "pos-opened", "pos-symbol", "pos-commissions", "pos-notes", "pos-operations")
 CLOSE_FORM, CLOSE_TITLE, CLOSE_SAVE, CLOSE_CANCEL, CLOSE_MESSAGE, CLOSING = (
     "pos-close-form", "pos-close-title", "pos-close-save", "pos-close-cancel", "pos-close-message", "pos-closing")
 
-# name and property of the fields of a leg row, in the order parse_position reads them
+PRICES_HINT = "Prices per share, as quoted: 6.00 means $600 per contract."
+
+# name and property of the fields of a leg row, in the order parse_position reads them. The exit fields
+# only show when a position with closed legs is edited (decision 0033).
 LEG_FIELDS = (("option_type", "value"), ("side", "value"), ("strike", "value"), ("exp_date", "date"),
-              ("quantity", "value"), ("entry_price", "value"))
+              ("quantity", "value"), ("entry_price", "value"), ("exit_date", "date"), ("exit_price", "value"))
 POSITION_FIELDS = (("opened", (OPENED, "date")), ("symbol", (SYMBOL, "value")), ("commissions", (COMMISSIONS, "value")),
-                   ("notes", (NOTES, "value")), ("operation", (OPERATION, "value")))
+                   ("notes", (NOTES, "value")), ("operations", (OPERATIONS, "value")))
 
 
 def leg_id(slot, field):
@@ -46,15 +51,20 @@ def _leg_row(slot):
                              placeholder="Expiration"),
         dcc.Input(id=leg_id(slot, "quantity"), placeholder="Quantity", **{**number, "min": 1, "step": 1}),
         dcc.Input(id=leg_id(slot, "entry_price"), placeholder="Entry price", **number),
+        html.Div(className="exit-field", children=dcc.DatePickerSingle(
+            id=leg_id(slot, "exit_date"), display_format="YYYY-MM-DD", first_day_of_week=1, placeholder="Closed on")),
+        html.Div(className="exit-field", children=dcc.Input(id=leg_id(slot, "exit_price"), placeholder="Exit price",
+                                                            **number)),
     ])
 
 
-def _modal(element_id, *children):
+def _modal(element_id, *children, wide=False):
     return html.Div(id=element_id, className="modal-backdrop", style=HIDDEN,
-                    children=html.Div(className="modal-box", children=list(children)))
+                    children=html.Div(className="modal-box wide" if wide else "modal-box", children=list(children)))
 
 
 def position_form():
+    head = ["Type", "Side", "Strike", "Expiration", "Quantity", "Entry price"]
     return _modal(
         FORM,
         html.H3(id=FORM_TITLE),
@@ -62,16 +72,20 @@ def position_form():
             html.Div([html.Label("Opened", htmlFor=OPENED),
                       dcc.DatePickerSingle(id=OPENED, display_format="YYYY-MM-DD", first_day_of_week=1)]),
             html.Div([html.Label("Underlying", htmlFor=SYMBOL), dcc.Input(id=SYMBOL, type="text", debounce=True)]),
-            html.Div([html.Label("Commissions (total)", htmlFor=COMMISSIONS),
-                      dcc.Input(id=COMMISSIONS, type="number", min=0, step="any")]),
+            html.Div([html.Label("Commissions ($)", htmlFor=COMMISSIONS),
+                      dcc.Input(id=COMMISSIONS, type="number", min=0, step="any", placeholder="Automatic")]),
         ]),
-        html.Label("Linked operation (optional)", htmlFor=OPERATION),
-        dcc.Dropdown(id=OPERATION, options=[], placeholder="Choose the operation this position mimics"),
+        html.Label("Linked operations (optional)", htmlFor=OPERATIONS),
+        dcc.Dropdown(id=OPERATIONS, options=[], multi=True, placeholder="Choose the operations this position mimics"),
         html.Label("Legs"),
-        html.Div(className="pos-leg-row pos-leg-head", children=[
-            html.Span("Type"), html.Span("Side"), html.Span("Strike"), html.Span("Expiration"), html.Span("Quantity"),
-            html.Span("Entry price")]),
-        *[_leg_row(slot) for slot in range(LEG_SLOTS)],
+        html.Div(id=LEGS, className=LEGS_CLASS, children=[
+            html.Div(className="pos-leg-row pos-leg-head", children=[
+                *[html.Span(h) for h in head], html.Span("Closed on", className="exit-field"),
+                html.Span("Exit price", className="exit-field")]),
+            *[_leg_row(slot) for slot in range(LEG_SLOTS)],
+        ]),
+        html.P(f"{PRICES_HINT} Empty commissions are $1 per contract to open, at most $10 per leg.",
+               className="muted"),
         html.Label("Notes", htmlFor=NOTES),
         dcc.Textarea(id=NOTES, style={"width": "100%"}),
         html.Div(id=FORM_MESSAGE, className="form-message"),
@@ -79,6 +93,7 @@ def position_form():
             html.Button("Save", id=FORM_SAVE, className="btn primary"),
             html.Button("Cancel", id=FORM_CANCEL, className="btn"),
         ]),
+        wide=True,
     )
 
 
@@ -91,8 +106,8 @@ def close_form():
     return _modal(
         CLOSE_FORM,
         html.H3(id=CLOSE_TITLE),
-        html.P("Enter the exit price of the legs you closed. A leg without a price stays open; emptying the price of "
-               "a closed leg reopens it.", className="muted"),
+        html.P(f"Enter the exit price of the legs you closed. {PRICES_HINT} A leg without a price stays open; "
+               "emptying the price of a closed leg reopens it.", className="muted"),
         *rows,
         html.Div(id=CLOSE_MESSAGE, className="form-message"),
         html.Div(className="modal-buttons", children=[
@@ -108,63 +123,85 @@ class PositionInput:
     legs: tuple
     commissions: float
     notes: str
-    operation_id: str | None
+    operation_ids: tuple
 
 
 def _is_blank(value):
     return value is None or value == ""
 
 
-def _parse_leg(symbol, row, number, current):
-    """A Leg, or None for an empty row, and what is wrong with it. An edited leg keeps its close."""
+def _parse_exit(exit_date, exit_price, number):
+    """(date, price), (None, None) if there is no price, and what is wrong."""
+    if _is_blank(exit_price):
+        return (None, None), []
+    parsed_date, parsed_price = iso_date_or_none(exit_date), number_or_none(exit_price)
+    errors = []
+    if parsed_date is None:
+        errors.append(f"Leg {number}: pick the closing date.")
+    if parsed_price is None:
+        errors.append(f"Leg {number}: the exit price must be a number.")
+    return (parsed_date, parsed_price), errors
+
+
+def _parse_leg(symbol, row, number):
+    """A Leg, or None for an empty row, and what is wrong with it."""
     if all(_is_blank(value) for value in row):
         return None, []
-    option_type, side, strike, exp_date, quantity, entry_price = row
+    option_type, side, strike, exp_date, quantity, entry_price, exit_date, exit_price = row
     strike, quantity, entry_price = number_or_none(strike), number_or_none(quantity), number_or_none(entry_price)
     exp_date = iso_date_or_none(exp_date)
     if None in (option_type, side, strike, exp_date, quantity, entry_price):
         return None, [f"Leg {number}: fill in every field, or leave the whole row empty."]
-    exit_date, exit_price = (current.exit_date, current.exit_price) if current else (None, None)
+    (exit_date, exit_price), errors = _parse_exit(exit_date, exit_price, number)
+    if errors:
+        return None, errors
     return Leg(symbol, option_type, strike, exp_date, side, quantity, entry_price, exit_date, exit_price), []
 
 
-def parse_position(opened, symbol, commissions, notes, operation, rows, current=None):
+def operation_ids_of(value):
+    """The drop-down's value as a tuple of IDs, without repeats or blanks."""
+    values = [value] if isinstance(value, str) else (value or [])
+    return tuple(dict.fromkeys(v for v in values if v))
+
+
+def parse_position(opened, symbol, commissions, notes, operations, rows):
     """The form's values as a PositionInput and an empty list, or None and what is wrong."""
     errors, legs = [], []
     opened_on = iso_date_or_none(opened)
     symbol = (symbol or "").strip().upper()
-    fee = 0.0 if _is_blank(commissions) else number_or_none(commissions)
+    fee = None if _is_blank(commissions) else number_or_none(commissions)
     if opened_on is None:
         errors.append("Pick the opening date.")
     if not symbol:
         errors.append("Enter the underlying.")
-    if fee is None:
+    if not _is_blank(commissions) and fee is None:
         errors.append("The commissions must be a number.")
-    existing = current.legs if current else ()
     for slot, row in enumerate(rows):
-        leg, problems = _parse_leg(symbol, row, slot + 1, existing[slot] if slot < len(existing) else None)
+        leg, problems = _parse_leg(symbol, row, slot + 1)
         errors += problems
         if leg is not None:
             legs.append(leg)
     if errors:
         return None, errors
+    if fee is None:
+        fee = opening_commissions(leg.quantity for leg in legs)
     errors = check(opened_on, legs, fee)
     if errors:
         return None, errors
-    return PositionInput(opened_on, tuple(legs), fee, notes or "", operation or None), []
+    return PositionInput(opened_on, tuple(legs), fee, notes or "", operation_ids_of(operations)), []
+
+
+def automatic_commissions_hint(quantities):
+    """The commissions field's placeholder: what an empty field will be saved as."""
+    valid = [q for q in (number_or_none(q) for q in quantities) if q is not None and q > 0]
+    return f"Automatic: {opening_commissions(valid):,.2f}" if valid else "Automatic"
 
 
 def parse_exits(leg_ids, rows):
     """{leg id: (date, price), or None if it has no price} from the closing form, and what is wrong."""
     exits, errors = {}, []
     for number, (leg_id_, (exit_date, price)) in enumerate(zip(leg_ids, rows), 1):
-        if _is_blank(price):
-            exits[leg_id_] = None
-            continue
-        parsed_date, parsed_price = iso_date_or_none(exit_date), number_or_none(price)
-        if parsed_date is None:
-            errors.append(f"Leg {number}: pick the closing date.")
-        if parsed_price is None:
-            errors.append(f"Leg {number}: the price must be a number.")
-        exits[leg_id_] = (parsed_date, parsed_price)
+        close, problems = _parse_exit(exit_date, price, number)
+        errors += problems
+        exits[leg_id_] = None if close == (None, None) else close
     return (None, errors) if errors else (exits, [])

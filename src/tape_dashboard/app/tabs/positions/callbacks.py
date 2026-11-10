@@ -15,7 +15,7 @@ from ... import ids
 from ...leg_form import errors_block
 from ..operations import view as operations_view
 from . import forms, view
-from .rows import history_row, leg_text, legs_text, open_row, symbol_of
+from .rows import history_row, leg_text, link_text, open_row, symbol_of
 
 M = 1_000_000
 
@@ -26,12 +26,17 @@ def list_content(state):
     """Rows of the open positions and of the history."""
     today, open_rows, history = state.today(), [], []
     for position in state.positions.all():
-        item = state.classified(position.operation_id) if position.operation_id else None
+        links = _links(state, position)
         if pnl.is_closed(position):
-            history.append(history_row(position, item))
+            history.append(history_row(position, links))
         else:
-            open_rows.append(open_row(position, item, today))
+            open_rows.append(open_row(position, links, today))
     return open_rows, history
+
+
+def _links(state, position):
+    """Each linked operation ID with that operation, edits applied, or None if it no longer exists."""
+    return [(operation_id, state.classified(operation_id)) for operation_id in position.operation_ids]
 
 
 def history_view(virtual_rows, rows):
@@ -67,11 +72,7 @@ def detail_content(state, selected):
         percentage = pnl.pnl_pct(position)
         facts.append(f"Closed {pnl.closing_date(position)} after {pnl.days_held(position)} days · "
                      f"P&L {pnl.net_pnl(position):+,.2f}" + ("" if percentage is None else f" ({percentage:+.1f}%)"))
-    if position.operation_id:
-        item = state.classified(position.operation_id)
-        facts.append(f"Linked to {position.operation_id} ({item.classification.structure}, "
-                     f"{item.classification.direction or '—'})" if item else
-                     f"Linked to {position.operation_id}, which no longer exists")
+    facts += [f"Linked to {link_text(operation_id, item)}" for operation_id, item in _links(state, position)]
     if position.notes:
         facts.append(position.notes)
     return [html.H4(f"{symbol_of(position)} · position {position.id}"), html.Ul([html.Li(f) for f in facts]),
@@ -90,7 +91,11 @@ def selection_action(state, trigger, open_cell, history_cell, selected, version)
 
 
 def operation_options(state, symbol, current):
-    """Operations of that underlying in tab 1's list, latest first, plus the current link if it is not there."""
+    """
+    Operations of that underlying in tab 1's list, latest first, with short
+    labels because several can be chosen; plus the current links that are not
+    there, so that they are never dropped.
+    """
     symbol = (symbol or "").strip().upper()
     dates = state.dataset.usable_dates
     items = for_symbol(classified_operations(state.dataset, state.edits(), min(dates), max(dates)), symbol) \
@@ -98,11 +103,11 @@ def operation_options(state, symbol, current):
     options = []
     for item in sorted(items, key=lambda i: i.operation.id, reverse=True):
         op, c = item.operation, item.classification
-        options.append({"label": f"{op.capture_date.isoformat()} · {op.summary['hora_inicio']} · {c.structure} · "
-                                 f"{c.direction or '—'} · {op.premium / M:.3f}M", "value": op.id})
-    if current and current not in {o["value"] for o in options}:
-        options.insert(0, {"label": f"{current} (not listed for this underlying)", "value": current})
-    return options
+        options.append({"label": f"{op.capture_date:%m-%d} {op.summary['hora_inicio'][:5]} · {c.structure} · "
+                                 f"{c.direction or '—'} · {op.premium / M:.2f}M", "value": op.id})
+    listed = {o["value"] for o in options}
+    missing = [i for i in forms.operation_ids_of(current) if i not in listed]
+    return [{"label": f"{i} (not listed for this underlying)", "value": i} for i in missing] + options
 
 
 def prefill_from_operation(state, operation_id, nonce):
@@ -120,14 +125,15 @@ def prefill_from_operation(state, operation_id, nonce):
             for i, leg in enumerate(op.legs[:forms.LEG_SLOTS])]
     note = (f"This operation has {len(op.legs)} legs: only the first {forms.LEG_SLOTS} were copied."
             if len(op.legs) > forms.LEG_SLOTS else "")
-    return {"symbol": op.symbol, "operation_id": op.id, "legs": legs, "note": note, "nonce": nonce}
+    return {"symbol": op.symbol, "operation_ids": [op.id], "legs": legs, "note": note, "nonce": nonce}
 
 
 # --- the position form ----------------------------------------------------------
 
 FORM_FIELDS = [
     ("style", (forms.FORM, "style")), ("title", (forms.FORM_TITLE, "children")),
-    *forms.POSITION_FIELDS,
+    *forms.POSITION_FIELDS, ("operation_options", (forms.OPERATIONS, "options")),
+    ("legs_class", (forms.LEGS, "className")),
     *[(f"leg{slot}_{name}", (forms.leg_id(slot, name), prop)) for slot in range(forms.LEG_SLOTS)
       for name, prop in forms.LEG_FIELDS],
     ("message", (forms.FORM_MESSAGE, "children")), ("editing", (forms.EDITING, "data")),
@@ -141,47 +147,57 @@ def _form(**values):
     return tuple(values.get(name, no_update) for name, _ in FORM_FIELDS)
 
 
-def _open_form(title, editing, opened, symbol=None, commissions=None, notes=None, operation=None, legs=(), message=""):
+def _open_form(state, title, editing, opened, symbol=None, commissions=None, notes=None, operations=(), legs=(),
+               message="", show_exits=False):
+    """
+    The drop-down's options go out with its value: if they arrived later, a
+    link set before tab 3 was ever shown would be dropped as unknown.
+    """
     values = {}
     for slot in range(forms.LEG_SLOTS):
         leg = legs[slot] if slot < len(legs) else {}
         values.update({f"leg{slot}_{name}": leg.get(name) for name in LEG_NAMES})
     return _form(style=forms.SHOWN, title=title, editing=editing, opened=opened, symbol=symbol, commissions=commissions,
-                 notes=notes, operation=operation, message=message, **values)
+                 notes=notes, operations=list(operations),
+                 operation_options=operation_options(state, symbol, operations),
+                 legs_class=forms.LEGS_WITH_EXITS_CLASS if show_exits else forms.LEGS_CLASS, message=message, **values)
 
 
 def _closed_form(**extra):
     return _form(style=forms.HIDDEN, editing=None, **extra)
 
 
-def _edit_form(position):
+def _edit_form(state, position):
+    """Every field of the position, the closes included once a leg is closed. Default commissions show empty."""
     legs = [{name: getattr(leg, name) for name in LEG_NAMES} for leg in position.legs]
-    return _open_form(f"Edit {symbol_of(position)} · position {position.id}", {"id": position.id}, position.opened_on,
-                      symbol_of(position), position.commissions, position.notes, position.operation_id, legs)
+    automatic = abs(position.commissions - pnl.opening_commissions(leg.quantity for leg in position.legs)) < 0.005
+    return _open_form(state, f"Edit {symbol_of(position)} · position {position.id}", {"id": position.id},
+                      position.opened_on, symbol_of(position), None if automatic else position.commissions,
+                      position.notes, position.operation_ids, legs, show_exits=any(leg.closed for leg in position.legs))
 
 
 def form_action(state, trigger, selected, prefill, editing, version, fields, rows):
     """Opens the form (new, edit or from an operation), cancels it, or saves it if it is valid."""
     today = state.today().isoformat()
     if trigger == view.NEW:
-        return _open_form("New position", {"id": None}, today)
+        return _open_form(state, "New position", {"id": None}, today)
     if trigger == view.EDIT:
         position = _position(state, selected)
-        return _edit_form(position) if position else _form()
+        return _edit_form(state, position) if position else _form()
     if trigger == view.PREFILL and prefill:
         note = html.P(prefill["note"], className="muted") if prefill.get("note") else ""
-        return _open_form("New position", {"id": None}, today, prefill["symbol"], operation=prefill["operation_id"],
-                          legs=prefill["legs"], message=note)
+        return _open_form(state, "New position", {"id": None}, today, prefill["symbol"],
+                          operations=prefill["operation_ids"], legs=prefill["legs"], message=note)
     if trigger == forms.FORM_CANCEL:
         return _closed_form()
     if trigger != forms.FORM_SAVE or not editing:
         return _form()
     position_id = editing.get("id")
     current = state.positions.get(position_id) if position_id else None
-    parsed, errors = forms.parse_position(*fields, rows, current)
+    parsed, errors = forms.parse_position(*fields, rows)
     if errors:
         return _form(message=errors_block(errors))
-    values = (parsed.opened_on, parsed.legs, parsed.commissions, parsed.notes, parsed.operation_id)
+    values = (parsed.opened_on, parsed.legs, parsed.commissions, parsed.notes, parsed.operation_ids)
     if current:
         state.positions.update(position_id, *values)
     else:
@@ -278,9 +294,15 @@ def register(app, state):
     def handle_selection(open_cell, history_cell, _confirm, selected, version):
         return selection_action(state, ctx.triggered_id, open_cell, history_cell, selected, version)
 
-    @app.callback(Output(forms.OPERATION, "options"), Input(forms.SYMBOL, "value"), Input(forms.OPERATION, "value"))
+    @app.callback(Output(forms.OPERATIONS, "options", allow_duplicate=True), Input(forms.SYMBOL, "value"),
+                  Input(forms.OPERATIONS, "value"), prevent_initial_call=True)
     def refresh_operations(symbol, current):
         return operation_options(state, symbol, current)
+
+    @app.callback(Output(forms.COMMISSIONS, "placeholder"),
+                  *[Input(forms.leg_id(slot, "quantity"), "value") for slot in range(forms.LEG_SLOTS)])
+    def refresh_commissions_hint(*quantities):
+        return forms.automatic_commissions_hint(quantities)
 
     @app.callback(Output(view.PREFILL, "data"), Output(ids.TABS, "value"),
                   Input(operations_view.NEW_POSITION, "n_clicks"), State(operations_view.GRID, "selectedRows"),
@@ -321,5 +343,6 @@ def register(app, state):
 
     return {"refresh_lists": refresh_lists, "refresh_history_view": refresh_history_view,
             "refresh_detail": refresh_detail, "ask_to_delete": ask_to_delete, "handle_selection": handle_selection,
-            "refresh_operations": refresh_operations, "new_from_operation": new_from_operation,
+            "refresh_operations": refresh_operations, "refresh_commissions_hint": refresh_commissions_hint,
+            "new_from_operation": new_from_operation,
             "handle_form": handle_form, "handle_close": handle_close}

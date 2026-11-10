@@ -7,11 +7,19 @@ from ..rules.sides import BUY
 MULTIPLIER = 100
 OPEN, PARTIAL, CLOSED = "open", "partially closed", "closed"
 
+# the broker's schedule: $1 per contract to open, at most $10 per leg, nothing to close (decision 0033)
+COMMISSION_PER_CONTRACT, COMMISSION_CAP_PER_LEG = 1.0, 10.0
+
 _ZERO = 1e-9
 
 
 def _sign(leg):
     return 1 if leg.side == BUY else -1
+
+
+def opening_commissions(quantities):
+    """Default commissions of a position from the quantity of each of its legs."""
+    return sum(min(quantity * COMMISSION_PER_CONTRACT, COMMISSION_CAP_PER_LEG) for quantity in quantities)
 
 
 def leg_pnl(leg):
