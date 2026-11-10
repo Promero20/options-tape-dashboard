@@ -78,6 +78,7 @@ It also includes the script change that drops cancellations ([0015](decisions/00
 - Own store and pure P&L calculation (`tape_dashboard.positions`), with a model ready for a future read-only import ([0031](decisions/0031-positions-model-and-pnl.md)).
 - Tab 3: open positions, history with the source operation's data, the selected position, forms to create, edit and close, and a cumulative P&L chart that follows the history's filters ([0032](decisions/0032-positions-tab.md)).
 - "New position" button in tab 1, which fills in the form from the selected operation.
+- After the user's review: several linked operations, automatic commissions, closes edited from Edit, and the link from tab 1 no longer lost ([0033](decisions/0033-positions-links-commissions-and-closes.md)).
 
 **Done when:** the store, the P&L and the tab's controllers are tested with invented figures, and the whole cycle (create, edit, close leg by leg, history, filtered chart, delete, start from an operation) works in a real browser on a temporary folder. ✔
 

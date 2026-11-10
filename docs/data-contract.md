@@ -156,7 +156,7 @@ The interface allows one manual leg per operation, always saved together with an
 
 ## Positions
 
-SQLite file `positions.sqlite` in the user-data folder, outside git and outside the pipeline's data folder ([decision 0031](decisions/0031-positions-model-and-pnl.md)). A position can point to an operation ID. If the ID no longer exists, the link is shown as an orphan and is never deleted.
+SQLite file `positions.sqlite` in the user-data folder, outside git and outside the pipeline's data folder ([decision 0031](decisions/0031-positions-model-and-pnl.md)). A position can point to several operation IDs ([decision 0033](decisions/0033-positions-links-commissions-and-closes.md)). If an ID no longer exists, the link is shown as an orphan and is never deleted.
 
 **`positions`**: one row per position.
 
@@ -166,7 +166,6 @@ SQLite file `positions.sqlite` in the user-data folder, outside git and outside 
 | `opened_on` | ISO date | Opening date |
 | `commissions` | number ≥ 0 | Total of the position, opening and closing |
 | `notes` | text | Free notes |
-| `operation_id` | text or null | ID of the operation it mimics |
 | `source` | text | Where it comes from; `manual` for now |
 | `external_id` | text or null | Its ID in `source`; unique per source, for a future import |
 | `created_at`, `updated_at` | ISO date and time | |
@@ -186,6 +185,17 @@ SQLite file `positions.sqlite` in the user-data folder, outside git and outside 
 | `entry_price` | number ≥ 0 | Entry price |
 | `exit_date` | ISO date or null | Closing date, not before the opening date |
 | `exit_price` | number ≥ 0 or null | Closing price; set together with `exit_date` |
+
+Prices are per share, as quoted: 6.00 is $600 per contract.
+
+**`position_links`**: the operations each position mimics.
+
+| Column | Type | Content |
+|---|---|---|
+| `position_id` | integer | Position; deleted with it |
+| `operation_id` | text | ID of an operation it mimics; once per position |
+
+A file written before decision 0033 has `operation_id` in `positions` instead. When the dashboard opens it, that link moves to `position_links` in one transaction, and a copy of the original file is left next to it as `positions.before-links.sqlite`.
 
 ## Configuration
 

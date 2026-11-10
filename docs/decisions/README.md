@@ -34,8 +34,9 @@ One short entry per relevant decision: what was decided, why, and which alternat
 | [0028](0028-in-the-money-walls.md) | In-the-money walls are shown, marked, and can be hidden | accepted |
 | [0029](0029-chart-panel-controls.md) | Chart panel: one shared date range, last month by default, and an underlying selector | accepted |
 | [0030](0030-manual-legs.md) | Manual legs: one per operation, entered in tab 2, edited and deleted from tab 1 | accepted |
-| [0031](0031-positions-model-and-pnl.md) | Positions: their own file, closes per leg, and P&L on the net premium | accepted |
-| [0032](0032-positions-tab.md) | Positions tab: link to the operation, form limits, and a chart that follows the filters | accepted |
+| [0031](0031-positions-model-and-pnl.md) | Positions: their own file, closes per leg, and P&L on the net premium | accepted, amended by 0033 |
+| [0032](0032-positions-tab.md) | Positions tab: link to the operation, form limits, and a chart that follows the filters | accepted, amended by 0033 |
+| [0033](0033-positions-links-commissions-and-closes.md) | Positions: several linked operations, automatic commissions, and closes edited from Edit | accepted |
 
 ## Pending decisions
 

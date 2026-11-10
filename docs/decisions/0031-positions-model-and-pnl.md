@@ -1,7 +1,7 @@
 # 0031. Positions: their own file, closes per leg, and P&L on the net premium
 
 - **Date:** 2026-11-09
-- **Status:** accepted (completes the specification)
+- **Status:** accepted (completes the specification); amended by [0033](0033-positions-links-commissions-and-closes.md)
 
 ## Context
 

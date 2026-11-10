@@ -95,7 +95,7 @@ Anything that does not fit becomes an `Issue` attached to its file: errors (the 
 
 **Charts** (`tape_dashboard.charts`). `aggregate` turns classified operations into what the charts show: net bars by expiration or strike, the separate totals and the walls by strike, with the ITM flag ([business rules](business-rules.md#6-charts)). It is pure Python, without Dash or Plotly. `figures` builds the Plotly figures from that. The reference price comes from `Dataset.price_on_or_before`.
 
-**Positions** (`tape_dashboard.positions`). `store` keeps the user's real positions and their legs in their own SQLite file; every write is one transaction and validates first. `pnl` computes, as pure functions, each position's status, P&L, percentage and days held, and the cumulative series ([business rules](business-rules.md#7-positions-and-pl)). The tab only reads through the store, so a future read-only import can feed it.
+**Positions** (`tape_dashboard.positions`). `store` keeps the user's real positions, their legs and their links to operations in their own SQLite file, and migrates files written with a single link; every write is one transaction and validates first. `pnl` computes, as pure functions, each position's status, P&L, percentage and days held, and the cumulative series ([business rules](business-rules.md#7-positions-and-pl)). The tab only reads through the store, so a future read-only import can feed it.
 
 **Application** (`tape_dashboard.app`). A Dash app, started with `python -m tape_dashboard`, that only listens on 127.0.0.1 ([decision 0023](decisions/0023-ui-stack.md)):
 
