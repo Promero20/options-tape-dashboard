@@ -45,7 +45,6 @@ body {
 .panel h4 { margin: 0 0 8px; font-size: 15px; }
 .detail-panel { position: relative; }
 .detail-panel h4 { padding-right: 190px; }
-.placeholder { min-height: 120px; }
 
 .ops-tab { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(380px, 1fr); gap: 12px; margin-top: 10px; }
 .ops-side { display: flex; flex-direction: column; gap: 12px; }

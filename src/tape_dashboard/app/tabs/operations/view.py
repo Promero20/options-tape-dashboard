@@ -1,4 +1,4 @@
-"""Layout of the operations tab: the list on the left; charts, selected operation and SPY GEX on the right."""
+"""Layout of the operations tab: the list on the left; charts and the selected operation on the right."""
 
 import dash_ag_grid as dag
 from dash import dcc, html
@@ -154,11 +154,6 @@ def layout(state):
                     html.Button("Edit", id=EDIT, className="btn"),
                 ]),
                 html.Div(id=DETAIL, children=empty_detail()),
-            ]),
-            html.Div(className="panel placeholder", children=[
-                html.H4("SPY GEX"),
-                html.P("Market context from the daily SPY GEX file: regime, gamma flip and main strikes. "
-                       "Coming in phase 7.", className="muted"),
             ]),
         ]),
         modal(),
