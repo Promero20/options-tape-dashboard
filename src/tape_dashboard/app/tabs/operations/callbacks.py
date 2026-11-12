@@ -14,7 +14,8 @@ from ...leg_form import errors_block, preview_block
 from . import editing
 from . import view
 from .ranges import CUSTOM, resolve_range
-from .rows import column_defs, destination_counts, leg_rows, operation_rows
+from .rows import (COLUMN_DEFS, COLUMN_GROUPS, column_defs, destination_counts, factory_layout, layout_from_state,
+                   leg_rows, operation_rows, visible_by_group, with_visibility)
 
 
 # --- controllers --------------------------------------------------------------
@@ -29,7 +30,7 @@ def grid_content(state, preset, start, end):
     counts = ", ".join(f"{dest} {n}" for dest, n in destination_counts(items).items())
     summary = f"{len(items)} operations above the threshold ({period}): {counts}"
     note = r.note or ("" if items else "No operations in this range.")
-    return operation_rows(items), note, summary
+    return operation_rows(items, state.dataset), note, summary
 
 
 def detail_content(state, operation_id):
@@ -176,6 +177,60 @@ def leg_feedback(state, editing_data, leg_values, strategy):
     return [{"label": label, "value": key} for key, label in form.options], preview_block(form)
 
 
+# --- columns of the list (decision 0035) ----------------------------------------
+
+COLUMNS_FIELDS = [
+    ("style", (view.COLUMNS_MODAL, "style")),
+    *[(f"group{i}", (group_id, "value")) for i, group_id in enumerate(view.COLUMN_GROUP_IDS)],
+    ("defs", (view.GRID, "columnDefs")), ("size", (view.GRID, "columnSize")),
+    ("message", (view.COLUMNS_MESSAGE, "children")),
+]
+COLUMNS_OUTPUTS = [output for _, output in COLUMNS_FIELDS]
+ALL_FIELDS = {field for _, fields in COLUMN_GROUPS for field in fields}
+
+
+def _columns(layout=None, ticks=False, **values):
+    """The outputs; with a layout, the grid's columns, and with ticks, the pop-up's boxes, follow it."""
+    if layout is not None:
+        values["defs"] = column_defs(layout)
+    if ticks:
+        values.update({f"group{i}": shown for i, shown in enumerate(visible_by_group(layout))})
+    return tuple(values.get(name, no_update) for name, _ in COLUMNS_FIELDS)
+
+
+def columns_action(state, trigger, groups, column_state):
+    """
+    Opens and closes the pop-up, shows or hides columns at once, and saves,
+    restores or resets the layout. The grid's columnState carries the order
+    the user dragged and the widths, so that every change keeps them.
+    """
+    current = layout_from_state(column_state) or factory_layout()
+    if trigger == view.COLUMNS_BUTTON:
+        return _columns(current, ticks=True, style=view.SHOWN, message="")
+    if trigger == view.COLUMNS_CLOSE:
+        return _columns(style=view.HIDDEN)
+    if trigger == view.COLUMNS_ALL:
+        return _columns(with_visibility(current, ALL_FIELDS), ticks=True)
+    if trigger == view.COLUMNS_NONE:
+        return _columns(with_visibility(current, set()), ticks=True)
+    if trigger in view.COLUMN_GROUP_IDS:
+        return _columns(with_visibility(current, {field for shown in groups for field in shown or ()}))
+    if trigger == view.COLUMNS_SAVE:
+        state.preferences.save_operations_columns(current)
+        shown = sum(1 for entry in current if not entry["hide"])
+        return _columns(message=f"Saved as default: {shown} of {len(COLUMN_DEFS)} columns shown.")
+    if trigger == view.COLUMNS_RESTORE:
+        saved = state.preferences.operations_columns()
+        if saved is None:
+            return _columns(factory_layout(), ticks=True, size="autoSize",
+                            message="There is no saved default yet: factory columns.")
+        return _columns(saved, ticks=True, size=None, message="Saved default restored.")
+    if trigger == view.COLUMNS_FACTORY:
+        return _columns(factory_layout(), ticks=True, size="autoSize",
+                        message="Factory columns. Save as default to keep them.")
+    return _columns()
+
+
 # --- wiring -------------------------------------------------------------------
 
 def register(app, state):
@@ -183,9 +238,18 @@ def register(app, state):
     def toggle_dates(preset):
         return preset != CUSTOM
 
-    @app.callback(Output(view.GRID, "columnDefs"), Input(view.COLUMNS, "value"))
-    def show_columns(visible):
-        return column_defs(visible or ())
+    @app.callback(
+        [Output(component, prop) for component, prop in COLUMNS_OUTPUTS],
+        Input(view.COLUMNS_BUTTON, "n_clicks"), Input(view.COLUMNS_CLOSE, "n_clicks"),
+        Input(view.COLUMNS_ALL, "n_clicks"), Input(view.COLUMNS_NONE, "n_clicks"),
+        Input(view.COLUMNS_SAVE, "n_clicks"), Input(view.COLUMNS_RESTORE, "n_clicks"),
+        Input(view.COLUMNS_FACTORY, "n_clicks"), *[Input(group_id, "value") for group_id in view.COLUMN_GROUP_IDS],
+        State(view.GRID, "columnState"),
+        prevent_initial_call=True,
+    )
+    def handle_columns(*values):
+        groups, column_state = values[7:-1], values[-1]
+        return columns_action(state, ctx.triggered_id, groups, column_state)
 
     @app.callback(
         Output(view.GRID, "rowData"), Output(view.RANGE_NOTE, "children"), Output(view.SUMMARY, "children"),
@@ -224,5 +288,5 @@ def register(app, state):
     def refresh_leg_feedback(editing_data, option_type, strike, exp_date, price, size, strategy):
         return leg_feedback(state, editing_data, (option_type, strike, exp_date, price, size), strategy)
 
-    return {"toggle_dates": toggle_dates, "show_columns": show_columns, "refresh_grid": refresh_grid,
+    return {"toggle_dates": toggle_dates, "handle_columns": handle_columns, "refresh_grid": refresh_grid,
             "show_detail": show_detail, "handle_modal": handle_modal, "refresh_leg_feedback": refresh_leg_feedback}

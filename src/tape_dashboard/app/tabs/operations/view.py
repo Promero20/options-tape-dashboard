@@ -8,10 +8,14 @@ from ....charts.figures import empty_figure
 from ....config import web_url
 from ...leg_form import LegFormIds, leg_fields, preview_area
 from .ranges import MONTH, PRESETS, TODAY
-from .rows import OPTIONAL_COLUMNS, ROW_CLASS_RULES, column_defs
+from .rows import COLUMN_GROUPS, ROW_CLASS_RULES, column_defs, column_label
 
 RANGE, DATES, RANGE_NOTE = "ops-range", "ops-dates", "ops-range-note"
-COLUMNS, GRID, SUMMARY = "ops-columns", "ops-grid", "ops-summary"
+GRID, SUMMARY = "ops-grid", "ops-summary"
+COLUMNS_BUTTON, COLUMNS_MODAL, COLUMNS_MESSAGE = "ops-columns-button", "ops-columns-modal", "ops-columns-message"
+COLUMNS_ALL, COLUMNS_NONE, COLUMNS_SAVE = "ops-columns-all", "ops-columns-none", "ops-columns-save"
+COLUMNS_RESTORE, COLUMNS_FACTORY, COLUMNS_CLOSE = "ops-columns-restore", "ops-columns-factory", "ops-columns-close"
+COLUMN_GROUP_IDS = tuple(f"ops-columns-{name.lower()}" for name, _ in COLUMN_GROUPS)
 DETAIL, EDIT, ACTIONS, NEW_POSITION = "ops-detail", "ops-edit", "ops-actions", "ops-new-position"
 GEX_REFERENCE = "ops-gex-reference"
 MODAL, MODAL_TITLE, MODAL_INFO, MODAL_LEGS = "ops-modal", "ops-modal-title", "ops-modal-info", "ops-modal-legs"
@@ -130,24 +134,49 @@ def gex_reference_link(url):
                    className="btn gex-reference")]
 
 
+def columns_modal():
+    """Which columns the list shows; the order is changed by dragging the headers (decision 0035)."""
+    groups = [html.Div(className="column-group", children=[
+        html.Label(name, htmlFor=group_id),
+        dcc.Checklist(id=group_id, options=[{"label": column_label(field), "value": field} for field in fields],
+                      value=[], inline=True, className="choices column-choices"),
+    ]) for (name, fields), group_id in zip(COLUMN_GROUPS, COLUMN_GROUP_IDS)]
+    return html.Div(id=COLUMNS_MODAL, className="modal-backdrop", style=HIDDEN, children=html.Div(
+        className="modal-box", children=[
+            html.H3("Columns"),
+            html.P("Symbol is always shown. Drag a column header in the list to change the order. Changes apply at "
+                   "once; Save as default keeps the list as it is for the next time.", className="muted"),
+            html.Div(className="toolbar", children=[html.Button("All", id=COLUMNS_ALL, className="btn"),
+                                                    html.Button("None", id=COLUMNS_NONE, className="btn")]),
+            *groups,
+            html.Div(id=COLUMNS_MESSAGE, className="form-message"),
+            html.Div(className="modal-buttons", children=[
+                html.Button("Save as default", id=COLUMNS_SAVE, className="btn primary"),
+                html.Button("Restore default", id=COLUMNS_RESTORE, className="btn"),
+                html.Button("Factory columns", id=COLUMNS_FACTORY, className="btn"),
+                html.Button("Close", id=COLUMNS_CLOSE, className="btn"),
+            ]),
+        ]))
+
+
 def layout(state):
+    saved = state.preferences.operations_columns()
     return html.Div(className="ops-tab", children=[
         html.Div(className="panel ops-list", children=[
             html.Div(className="toolbar", children=[
                 *range_selector(RANGE, DATES, TODAY),
-                dcc.Checklist(id=COLUMNS, options=[{"label": label, "value": field}
-                                                   for field, label in OPTIONAL_COLUMNS],
-                              value=[], inline=True, className="choices optional-columns"),
+                html.Button("✎ Columns", id=COLUMNS_BUTTON, className="btn columns-button",
+                            title="Choose the columns of the list"),
             ]),
             html.Div(id=RANGE_NOTE, className="range-note"),
             dag.AgGrid(
                 id=GRID,
-                columnDefs=column_defs(),
+                columnDefs=column_defs(saved),
                 rowData=[],
                 getRowId="params.data.id",
                 defaultColDef={"sortable": True, "filter": True, "floatingFilter": True, "resizable": True},
                 rowClassRules=ROW_CLASS_RULES,
-                columnSize="autoSize",
+                columnSize=None if saved else "autoSize",       # a saved layout keeps its own widths
                 dashGridOptions={
                     "rowSelection": {"mode": "singleRow", "checkboxes": False, "enableClickSelection": True},
                     "tooltipShowDelay": 300,
@@ -169,5 +198,6 @@ def layout(state):
             *gex_reference_link(state.settings.gex_reference_url),
         ]),
         modal(),
+        columns_modal(),
         dcc.Store(id=EDITING),
     ])

@@ -114,11 +114,10 @@ def test_the_column_that_opens_the_pop_up_is_always_visible():
     assert columns[1]["pinned"] == "left"
 
 
-def test_optional_columns_are_hidden_until_requested():
+def test_factory_columns_are_today_s_list():
     hidden = {col["field"]: col.get("hide", False) for col in column_defs()}
-    assert hidden["id"] and hidden["script_direction"] and not hidden["symbol"]
-    shown = {col["field"]: col.get("hide", False) for col in column_defs(["id"])}
-    assert not shown["id"] and shown["script_direction"]
+    assert hidden["id"] and hidden["script_direction"] and hidden["contract_volume"] and not hidden["symbol"]
+    assert not hidden["premium_m"] and not hidden["destination"]
 
 
 # --- editing -------------------------------------------------------------------------

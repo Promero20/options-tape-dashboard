@@ -8,6 +8,7 @@ from ..data.files import declared_hash
 from ..edits.apply import apply_edits
 from ..edits.store import FILE_NAME, EditStore
 from ..positions.store import FILE_NAME as POSITIONS_FILE_NAME, PositionStore
+from .preferences import FILE_NAME as PREFERENCES_FILE_NAME, Preferences
 
 
 class AppState:
@@ -24,6 +25,7 @@ class AppState:
         self._lock = threading.Lock()
         self.store = EditStore(settings.user_data_dir / FILE_NAME)
         self.positions = PositionStore(settings.user_data_dir / POSITIONS_FILE_NAME)
+        self.preferences = Preferences(settings.user_data_dir / PREFERENCES_FILE_NAME)
         self.dataset = None
         self.reload()
 

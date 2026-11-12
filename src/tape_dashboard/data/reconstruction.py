@@ -51,10 +51,22 @@ class Capture:
     cancellations: list[tuple] = field(default_factory=list)    # (cancelación, trade anulado o None)
     issues: list[Issue] = field(default_factory=list)
     usable: bool = False
+    _volumes: dict | None = field(default=None, init=False, repr=False, compare=False)
 
     @property
     def passing(self):
         return [op for op in self.operations if op.passes_threshold]
+
+    def contract_volume(self, contract_symbol):
+        """
+        Volume of a contract on the session it traded, from this capture's
+        level 1 (`volumen_en_fecha`), or None if level 1 does not have it.
+        """
+        if self._volumes is None:
+            rows = self.level1.rows if self.level1 is not None else []
+            self._volumes = {r["contract_symbol"]: r.get("volumen_en_fecha") for r in rows if r.get("contract_symbol")}
+        volume = self._volumes.get(contract_symbol)
+        return None if volume in (None, "") else volume
 
 
 def _load(loader, path, capture):

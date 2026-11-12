@@ -165,3 +165,14 @@ def test_every_real_pending_operation_can_be_completed_in_the_form(dataset):
             assert ml.form_state(op, fields, form.options[0][0]).text
             checked += 1
     assert checked > 0
+
+
+def test_every_listed_operation_has_its_contract_volume(dataset):
+    from tape_dashboard.app.tabs.operations.rows import operation_rows
+
+    first, last = min(dataset.usable_dates), max(dataset.usable_dates)
+    items = [i for i in apply_edits(dataset.operations(first, last, passing_only=True), Edits.empty())
+             if i.classification.destination != c.PENDING]
+    rows = operation_rows(items, dataset)
+    assert rows and all(r["contract_volume"] for r in rows)
+    assert all(0 < r["volume_share"] <= 100 for r in rows)       # an operation is part of its day's volume

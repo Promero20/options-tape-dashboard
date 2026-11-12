@@ -36,6 +36,10 @@ def collect(state):
         notices.append(Notice(WARNING, f"{GEX_REFERENCE_VARIABLE} is not an http or https address, so the "
                                        f"external GEX reference button is hidden."))
 
+    preferences_problem = state.preferences.problem()
+    if preferences_problem:
+        notices.append(Notice(WARNING, preferences_problem))
+
     declared = state.declared_hash()
     if declared is not None and not declared.exists:
         notices.append(Notice(WARNING, f"The file with the pipeline's declared script hash was not found: "
