@@ -13,6 +13,7 @@ config.toml
 # Credenciales (futura integración de solo lectura con tastytrade)
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 secrets/

@@ -32,3 +32,13 @@ def test_every_package_is_declared_in_pyproject():
     src = REPO_ROOT / "src"
     found = {".".join(p.relative_to(src).parent.parts) for p in src.rglob("__init__.py")}
     assert declared == found | {"pipeline"}
+
+
+def test_the_env_template_holds_no_values():
+    """.env.example is the only env file under version control, and it must stay empty."""
+    template = REPO_ROOT / ".env.example"
+    assert template.is_file()
+    for line in template.read_text(encoding="utf-8").splitlines():
+        if line.strip() and not line.lstrip().startswith("#"):
+            name, _, value = line.partition("=")
+            assert value.strip() == "", f"{name} has a value in .env.example"

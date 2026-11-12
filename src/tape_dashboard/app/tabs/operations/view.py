@@ -5,6 +5,7 @@ from dash import dcc, html
 
 from ....charts.aggregate import EXPIRATION, STRIKE
 from ....charts.figures import empty_figure
+from ....config import web_url
 from ...leg_form import LegFormIds, leg_fields, preview_area
 from .ranges import MONTH, PRESETS, TODAY
 from .rows import OPTIONAL_COLUMNS, ROW_CLASS_RULES, column_defs
@@ -12,6 +13,7 @@ from .rows import OPTIONAL_COLUMNS, ROW_CLASS_RULES, column_defs
 RANGE, DATES, RANGE_NOTE = "ops-range", "ops-dates", "ops-range-note"
 COLUMNS, GRID, SUMMARY = "ops-columns", "ops-grid", "ops-summary"
 DETAIL, EDIT, ACTIONS, NEW_POSITION = "ops-detail", "ops-edit", "ops-actions", "ops-new-position"
+GEX_REFERENCE = "ops-gex-reference"
 MODAL, MODAL_TITLE, MODAL_INFO, MODAL_LEGS = "ops-modal", "ops-modal-title", "ops-modal-info", "ops-modal-legs"
 DIRECTION_BOX, DIRECTION_INPUT = "ops-direction-box", "ops-direction"
 STRATEGY_BOX, STRATEGY_INPUT = "ops-strategy-box", "ops-strategy"
@@ -119,6 +121,15 @@ def modal():
     ]))
 
 
+def gex_reference_link(url):
+    """The button to the optional external GEX reference page, or nothing without a valid address (decision 0034)."""
+    url = web_url(url)
+    if url is None:
+        return []
+    return [html.A("GEX SPX", id=GEX_REFERENCE, href=url, target="_blank", rel="noopener noreferrer",
+                   className="btn gex-reference")]
+
+
 def layout(state):
     return html.Div(className="ops-tab", children=[
         html.Div(className="panel ops-list", children=[
@@ -155,6 +166,7 @@ def layout(state):
                 ]),
                 html.Div(id=DETAIL, children=empty_detail()),
             ]),
+            *gex_reference_link(state.settings.gex_reference_url),
         ]),
         modal(),
         dcc.Store(id=EDITING),

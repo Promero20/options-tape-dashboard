@@ -43,6 +43,7 @@ body {
 
 .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
 .panel h4 { margin: 0 0 8px; font-size: 15px; }
+.gex-reference { align-self: flex-start; text-decoration: none; }
 .detail-panel { position: relative; }
 .detail-panel h4 { padding-right: 190px; }
 

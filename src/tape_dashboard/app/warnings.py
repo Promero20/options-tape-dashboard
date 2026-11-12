@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from ..data.issues import ERROR, INFO, WARNING
+from ..config import GEX_REFERENCE_VARIABLE, web_url
 from ..edits.apply import orphans
 from ..positions.pnl import expired_legs
 
@@ -30,6 +31,10 @@ def collect(state):
             f"The level-3 script in the data folder (sha256 {script.deployed_sha256[:12]}…) differs from "
             f"pipeline/nivel3_agrupar.py ({script.canonical_sha256[:12]}…): deploy it again "
             f"(docs/level3-script.md)."))
+
+    if settings.gex_reference_url and web_url(settings.gex_reference_url) is None:
+        notices.append(Notice(WARNING, f"{GEX_REFERENCE_VARIABLE} is not an http or https address, so the "
+                                       f"external GEX reference button is hidden."))
 
     declared = state.declared_hash()
     if declared is not None and not declared.exists:

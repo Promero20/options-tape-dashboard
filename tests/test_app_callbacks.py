@@ -154,3 +154,74 @@ def test_the_app_only_listens_on_localhost():
                             capture_output=True, text=True)
     assert result.returncode == 0
     assert "--port" in result.stdout and "--host" not in result.stdout
+
+
+# --- external GEX reference (decision 0034) -----------------------------------------------------------
+
+def _find(component, component_id):
+    if getattr(component, "id", None) == component_id:
+        return component
+    children = getattr(component, "children", None)
+    for child in children if isinstance(children, (list, tuple)) else [children]:
+        if hasattr(child, "to_plotly_json"):
+            found = _find(child, component_id)
+            if found is not None:
+                return found
+    return None
+
+
+def test_the_gex_button_opens_the_external_reference_in_a_new_tab(synthetic_settings):
+    from dataclasses import replace
+
+    from tape_dashboard.app.state import AppState
+    from tape_dashboard.app.tabs.operations.view import GEX_REFERENCE, layout
+
+    url = "https://example.com/gex?symbol=SPX"
+    link = _find(layout(AppState(replace(synthetic_settings, gex_reference_url=url))), GEX_REFERENCE)
+    assert (link.children, link.href, link.target, link.rel) == ("GEX SPX", url, "_blank", "noopener noreferrer")
+
+
+def test_without_an_address_there_is_no_gex_button(synthetic_settings):
+    from tape_dashboard.app.state import AppState
+    from tape_dashboard.app.tabs.operations.view import GEX_REFERENCE, layout
+    from tape_dashboard.app.warnings import collect
+
+    state = AppState(synthetic_settings)
+    assert _find(layout(state), GEX_REFERENCE) is None
+    assert not any("GEX" in notice.text for notice in collect(state))
+
+
+def test_an_address_that_is_not_a_web_page_hides_the_button_and_says_why(synthetic_settings):
+    from dataclasses import replace
+
+    from tape_dashboard.app.state import AppState
+    from tape_dashboard.app.tabs.operations.view import GEX_REFERENCE, layout
+    from tape_dashboard.app.warnings import collect
+
+    state = AppState(replace(synthetic_settings, gex_reference_url="javascript:alert(1)"))
+    assert _find(layout(state), GEX_REFERENCE) is None
+    assert any("GEX_REFERENCE_URL_SPX is not an http or https address" in n.text for n in collect(state))
+
+
+def test_the_served_page_carries_the_gex_button(synthetic_settings):
+    from dataclasses import replace
+    from datetime import date
+
+    from tape_dashboard.app import create_app
+
+    app = create_app(replace(synthetic_settings, gex_reference_url="https://example.com/gex"),
+                     today=lambda: date(2026, 10, 15))
+    from tape_dashboard.app.tabs.operations.view import GEX_REFERENCE
+
+    def props_of(node, component_id):
+        if isinstance(node, dict):
+            if node.get("props", {}).get("id") == component_id:
+                return node["props"]
+            return next((p for v in node.values() if (p := props_of(v, component_id))), None)
+        if isinstance(node, list):
+            return next((p for v in node if (p := props_of(v, component_id))), None)
+        return None
+
+    props = props_of(app.server.test_client().get("/_dash-layout").get_json(), GEX_REFERENCE)
+    assert (props["href"], props["target"], props["rel"]) == ("https://example.com/gex", "_blank",
+                                                             "noopener noreferrer")
