@@ -2,13 +2,13 @@
 
 A local Python dashboard to review the daily options flow. It reads the CSV files left by an external capture pipeline (with the schema described in the [data contract](docs/data-contract.md)), rebuilds the operations from the individual trades and shows them in three tabs:
 
-1. **Operations**: the detected operations, with net directional and wall charts per underlying, and the SPY GEX as market context.
+1. **Operations**: the detected operations, with net directional and wall charts per underlying, and an optional link to an external GEX reference page.
 2. **Incomplete legs**: multi-leg operations missing a leg, to be completed by hand.
 3. **Positions**: real positions linked to the operation they mimic, with their history and P&L.
 
 The dashboard **only reads** the data folder, never modifies it, and never sends orders.
 
-> **Status:** phases 0 to 6 are done: the level-3 script was refactored under a byte-for-byte regression test, the data layer reads, validates and rebuilds every capture, the classification rules and manual edits are in place, and the application runs with the operations list, the net directional and walls charts, the tab to complete operations with a missing leg, and the positions tab with its history and P&L. The GEX panel comes next. The full plan is in [docs/plan.md](docs/plan.md).
+> **Status:** phases 0 to 7 are done: the level-3 script was refactored under a byte-for-byte regression test, the data layer reads, validates and rebuilds every capture, the classification rules and manual edits are in place, and the application runs with the operations list, the net directional and walls charts, the tab to complete operations with a missing leg, and the positions tab with its history and P&L. Only the visual polish is left. The full plan is in [docs/plan.md](docs/plan.md).
 
 ## Input files
 
@@ -84,7 +84,15 @@ The **Incomplete legs** tab lists the multi-leg operations of one capture that a
 
 The **Positions** tab records real positions, entered by hand, with prices per share as quoted. A position has up to four legs and can be linked to one or more operations it mimics, either from the form or with the **New position** button next to Edit in the Operations tab, which fills in the link and each leg's contract and side ([decisions 0032 and 0033](docs/decisions/0033-positions-links-commissions-and-closes.md)). Commissions default to $1 per contract to open, at most $10 per leg. Each leg closes whole, with its own date and price, and Edit also changes the closes of a closed position. Closed positions go to the history, with their P&L in $ and %, days held and the data of the source operation, all filterable; the cumulative P&L chart follows those filters ([business rules](docs/business-rules.md#7-positions-and-pl)). Positions are stored in the user-data folder, and the dashboard never sends orders.
 
-The GEX panel is a placeholder until its phase.
+### Optional external GEX reference
+
+The dashboard does not capture or store GEX data. Instead, the Operations tab can show a **GEX SPX** button that opens the GEX page of your choice in a new browser tab ([decision 0034](docs/decisions/0034-external-gex-reference.md)). To enable it, copy `.env.example` to `.env` at the repository root and set the address:
+
+```bash
+GEX_REFERENCE_URL_SPX=https://example.com/your-gex-page
+```
+
+The variable can also be set in the environment, which takes precedence over `.env`. Only `http` and `https` addresses are used; without the variable, or with it empty, the button does not appear and everything else works the same. Restart the dashboard after changing it. `.env` is never committed (see `.gitignore`).
 
 The data folder and the user-data folder are set with the `TAPE_DATA_DIR` and `TAPE_USER_DATA_DIR` environment variables, or with a `config.toml` file (template in [`config.example.toml`](config.example.toml)). That file can also point to where the pipeline declares the script hash it expects, so that the dashboard warns if it does not match ([decision 0026](docs/decisions/0026-declared-script-hash-check.md)).
 

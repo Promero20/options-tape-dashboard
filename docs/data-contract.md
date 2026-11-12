@@ -204,5 +204,6 @@ A file written before decision 0033 has `operation_id` in `positions` instead. W
 | Pipeline data | `TAPE_DATA_DIR` | `[paths] data_dir` | `../tape_data` |
 | User data (manual edits and positions) | `TAPE_USER_DATA_DIR` | `[paths] user_data_dir` | `./user_data` |
 | File where the pipeline declares the script hash (optional) | `TAPE_EXPECTED_HASH_FILE` | `[pipeline] expected_hash_file` | not set: no check |
+| Address of an external GEX reference page (optional) | `GEX_REFERENCE_URL_SPX`, also read from `.env` (template: `.env.example`) | — | not set: no button |
 
 The environment variable takes precedence. Relative paths in `config.toml` are resolved from the repository root. The declared-hash check is described in [decision 0026](decisions/0026-declared-script-hash-check.md). The template is [`config.example.toml`](../config.example.toml).

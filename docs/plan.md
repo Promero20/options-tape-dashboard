@@ -11,7 +11,7 @@ Each phase ends with the tests passing, the documentation up to date and a commi
 | 4 | Tab 1: net directional and walls charts | **done** |
 | 5 | Tab 2: incomplete legs | **done** |
 | 6 | Tab 3: positions | **done** |
-| 7 | SPY GEX (new input file and panel) | pending |
+| 7 | Link to an external GEX reference (replaces the SPY GEX panel) | **done** |
 | 8 | Visual polish: readability and look of the whole interface | pending |
 
 Phase 2 comes before the interface because the direction pop-up, the charts and tab 2 all need it. It is also the business logic with the most risk, and it is easier to test without a UI.
@@ -82,7 +82,12 @@ It also includes the script change that drops cancellations ([0015](decisions/00
 
 **Done when:** the store, the P&L and the tab's controllers are tested with invented figures, and the whole cycle (create, edit, close leg by leg, history, filtered chart, delete, start from an operation) works in a real browser on a temporary folder. ✔
 
-## Phases 7 and 8
+## Phase 7: external GEX reference
 
-- **7**: SPY GEX file and its panel.
+The SPY GEX panel and its input file were dropped: the dashboard does not capture, parse or store GEX data. Tab 1 shows a "GEX SPX" button that opens an external GEX reference page in a new tab, if `GEX_REFERENCE_URL_SPX` is set in the environment or in `.env` ([0034](decisions/0034-external-gex-reference.md)).
+
+**Done when:** the panel and its references are gone, the button shows only with a valid address and opens it in a new tab, and `.env` stays out of git while `.env.example` documents the variable. ✔
+
+## Phase 8
+
 - **8**: visual polish, once everything works: readability, layout and look of every tab. Until then, styling stays minimal.

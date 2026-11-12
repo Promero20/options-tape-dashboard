@@ -35,7 +35,6 @@ Operations are rebuilt from level 2 rather than read from the level-3 CSV: that 
 | `nivel1_candidatos_YYYYMMDD.csv` | Underlying price (threshold bracket, reference price in charts) |
 | `nivel2_trades_YYYYMMDD.csv` | Source of the operations: grouped with the code in `nivel3_agrupar.py` |
 | `nivel3_operaciones_YYYYMMDD.csv` | Not used as a source; only to check that the reconstruction matches |
-| `gex_spy_YYYYMMDD.csv` (new) | SPY GEX at capture time (see *Changes outside the dashboard*) |
 
 ### Schema normalisation
 
@@ -96,7 +95,7 @@ A sold put or a bull put spread forms a support wall, below the price. A sold ca
 
 ## Tab 1 — Operations
 
-Three panels, following the original sketch: the operations list on the left, the underlying's chart top right and the SPY GEX bottom right.
+Two panels: the operations list on the left and the underlying's charts on the right, with an optional link to an external GEX reference below them.
 
 ### Panel 1 — Operations list
 
@@ -124,13 +123,12 @@ Two charts of the selected underlying, switchable with inner tabs. Each has its 
 - Current underlying price marked as a reference.
 - Filter by expiration date.
 
-### Panel 3 — SPY GEX
+### External GEX reference (optional)
 
-General market context, independent of the selected operation. Data from the latest `gex_spy_YYYYMMDD.csv`, with its capture time visible.
+The dashboard does not capture, parse or store any GEX data. For market context, tab 1 shows a "GEX SPX" button that opens an external GEX reference page in a new browser tab.
 
-- Regime: positive or negative gamma.
-- Gamma flip level versus the current SPY price.
-- Main strikes by absolute GEX.
+- The address comes from the `GEX_REFERENCE_URL_SPX` environment variable, which can also be set in a `.env` file at the repository root (template: `.env.example`).
+- Without the variable, or with it empty, there is no button and the dashboard works the same.
 
 ## Tab 2 — Incomplete legs
 
@@ -185,7 +183,7 @@ Later phase. Manual entry first; the positions data model must allow replacing i
 
 ## Changes outside the dashboard
 
-Two changes are needed in the capture pipeline; neither alters what it delivers today.
+One change is needed in the capture pipeline; it does not alter what it delivers today.
 
 ### 1. `nivel3_agrupar.py`: expose legs and ID without changing its output
 
@@ -195,14 +193,6 @@ The dashboard imports the script's functions instead of reimplementing them. To 
 - Add a function that returns the operation ID (`YYYYMMDD-SYMBOL-HH:MM:SS.mmm`).
 - Separate grouping from the threshold filter, so the dashboard can group and apply manual edits before filtering.
 - Regression test: the `nivel3_operaciones_YYYYMMDD.csv` produced by the refactored script must be byte-for-byte identical to the current script's, for every day with level 2 available.
-
-### 2. New file with the SPY GEX
-
-The capture pipeline will have to produce a new file, independent of levels 1-3:
-
-- One capture per day, at the same time as the rest of the data.
-- Output: `gex_spy_YYYYMMDD.csv` in the data folder, with capture time, SPY price and GEX by strike.
-- If the source does not provide the gamma flip or the regime directly, they are computed from the GEX by strike.
 
 ## Documentation
 
