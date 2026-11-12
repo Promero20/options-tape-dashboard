@@ -44,7 +44,7 @@ One row per contract. Only the contracts selected by the pipeline (top 25 by `pr
 | `premium_estimado` | | no | number | `mid × oi_chg × 100` |
 | `dte` | | no | integer | Days to expiration |
 | `fecha_volumen` | | no | list of ISO dates | Actual date or dates of the volume (separated by `;`, in any order). Empty if the contract was not selected |
-| `volumen_en_fecha` | | no | integer | Volume on those dates |
+| `volumen_en_fecha` | | no | integer | Volume on those dates. The operations list shows it, added up across an operation's legs, as the contract volume |
 | `ratio_reconciliacion` | | no | number | `volumen_en_fecha / oi_chg` |
 | `reconciliacion_fallida`, `reconciliacion_ambigua` | | no | boolean or empty | Empty if the contract was not selected |
 
@@ -196,6 +196,14 @@ Prices are per share, as quoted: 6.00 is $600 per contract.
 | `operation_id` | text | ID of an operation it mimics; once per position |
 
 A file written before decision 0033 has `operation_id` in `positions` instead. When the dashboard opens it, that link moves to `position_links` in one transaction, and a copy of the original file is left next to it as `positions.before-links.sqlite`.
+
+## Preferences
+
+JSON file `preferences.json` in the user-data folder, outside git ([decision 0035](decisions/0035-configurable-columns.md)). It is written atomically, and a file that cannot be read is never overwritten without keeping a copy (`preferences.json.unreadable`).
+
+| Key | Content |
+|---|---|
+| `operations_columns` | Saved layout of the operations list, in display order: a list of `{"colId": column, "hide": true/false, "width": pixels}`. Unknown columns are ignored and columns it does not list are shown hidden |
 
 ## Configuration
 
