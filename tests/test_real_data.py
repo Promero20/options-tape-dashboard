@@ -7,7 +7,7 @@ from datetime import date, datetime
 
 import pytest
 
-from helpers import NEW_SCRIPT, days_with_level2, run_script, snapshot
+from helpers import NEW_SCRIPT, PREVIOUS_SCRIPT, days_with_level2, run_script, snapshot
 from pipeline import nivel3_agrupar as n3
 from tape_dashboard import report
 from tape_dashboard.data import validation
@@ -20,8 +20,9 @@ from tape_dashboard.rules import classification as c
 pytestmark = pytest.mark.real_data
 
 # Estado conocido del nivel 3 guardado en las capturas analizadas al empezar
-# el proyecto (ver docs/data-quality.md). Las capturas posteriores deben ser
-# idénticas a la reconstrucción.
+# el proyecto (ver docs/data-quality.md). The captures stored before the
+# grouping rule of 16/11/2026 (decision 0036) came from the previous script;
+# later captures must be identical to the reconstruction.
 KNOWN_VALIDATION = {
     "20260812": validation.NO_LEVEL3,
     "20260817": validation.NO_LEVEL3,
@@ -34,11 +35,12 @@ KNOWN_VALIDATION = {
     "20260924": validation.LABEL_ONLY,
     "20261001": validation.LABEL_ONLY,
     "20261002": validation.PREVIOUS_VERSION,   # tiene una cancelación
-    "20261006": validation.IDENTICAL,
+    "20261006": validation.PREVIOUS_RULE,
     "20261007": validation.PREVIOUS_VERSION,   # tiene una cancelación
-    "20261013": validation.IDENTICAL,
-    "20261015": validation.IDENTICAL,
+    "20261013": validation.PREVIOUS_RULE,
+    "20261015": validation.PREVIOUS_RULE,
 }
+LAST_DAY_OF_THE_PREVIOUS_RULE = date(2026, 11, 16)
 
 
 @pytest.fixture(scope="module")
@@ -78,8 +80,38 @@ def test_validation_against_stored_level3(dataset):
         key = day.strftime("%Y%m%d")
         if key in KNOWN_VALIDATION:
             assert status == KNOWN_VALIDATION[key], key
+        elif capture.files.level3 is not None and day <= LAST_DAY_OF_THE_PREVIOUS_RULE:
+            assert status == validation.PREVIOUS_RULE, key
         elif capture.files.level3 is not None:
             assert status == validation.IDENTICAL, key
+
+
+def test_the_script_reads_the_same_estimates_as_the_dashboard(dataset):
+    """The relevance of a chunk depends on them (decision 0036), also on level 1 files without a contract column."""
+    for day in dataset.usable_dates:
+        capture = dataset.captures[day]
+        prices, estimates = n3.cargar_nivel1(capture.files.level1)
+        mine = {}
+        for r in capture.level1.rows:
+            if r.get("contract_symbol") and r.get("premium_estimado") is not None:
+                mine.setdefault(r["contract_symbol"], r["premium_estimado"])
+        assert (prices, estimates) == (capture.level1.prices, mine), day
+
+
+def test_pending_operations_are_the_same_as_with_the_previous_rule(dataset, data_dir):
+    """Operations with legs to complete are multi-leg: the rule of decision 0036 does not touch them."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("frozen_previous", PREVIOUS_SCRIPT)
+    previous = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(previous)
+    for day in dataset.usable_dates:
+        key = day.strftime("%Y%m%d")
+        rows, _ = previous.quitar_cancelaciones(previous.cargar(data_dir / f"nivel2_trades_{key}.csv"))
+        before = sorted(previous.id_operacion(g) for g in previous.agrupar(rows).values()
+                        if previous.resumen(g)["patas_incompletas"])
+        after = sorted(op.id for op in dataset.captures[day].operations if op.summary["patas_incompletas"])
+        assert after == before, key
 
 
 def test_operation_ids_are_unique_within_each_capture(dataset):

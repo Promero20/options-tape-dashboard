@@ -188,12 +188,14 @@ LEVEL2 = Schema(
 
 # --- Nivel 3: operaciones (solo para validar la reconstrucción) --------------
 
-LEVEL3_CURRENT = (
+# grouping rule before 16/11/2026 (decision 0036)
+LEVEL3_PREVIOUS = (
     "symbol", "estructura", "n_patas", "n_trades", "size_total", "premium_total_M",
     "precio_neto", "precio_neto_metodo", "agresividad_pond", "direccion", "trade_conditions",
     "multi_leg_declarado", "patas_incompletas", "stock_option", "hora_inicio", "hora_fin",
     "duracion_s", "strike", "fecha_expiracion", "fecha_operacion",
 )
+LEVEL3_CURRENT = LEVEL3_PREVIOUS + ("lado", "n_trozos", "premium_trozo_mayor_M", "lado_de_trozo_menor")
 
 LEVEL3 = Schema(
     level="nivel3",
@@ -209,6 +211,8 @@ LEVEL3 = Schema(
                  "precio_neto", "precio_neto_metodo", "agresividad_pond", "direccion",
                  "trade_conditions", "multi_leg_declarado", "patas_incompletas", "stock_option",
                  "hora_inicio", "hora_fin", "duracion_s", "patas"),
-        "N3-C": LEVEL3_CURRENT,
+        "N3-C": LEVEL3_PREVIOUS,
+        # the grouping rule of 16/11/2026: chunks and the operation's side (decision 0036)
+        "N3-D": LEVEL3_CURRENT,
     },
 )

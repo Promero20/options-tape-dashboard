@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from pipeline import nivel3_agrupar as n3
 
 from . import strategies
-from .sides import BUY, SELL, leg_side, option_type
+from .sides import BUY, SELL, leg_side, operation_side, option_type
 
 # Destinos
 NET = "net"
@@ -93,7 +93,15 @@ def _net_price(legs, sides):
     return price
 
 
-def _measured_sides(legs):
+def _measured_sides(operation):
+    """
+    Side of each leg. An operation of single-leg conditions has the side it
+    was built with (decision 0036): its first chunk with a side. Otherwise,
+    each leg's aggressiveness.
+    """
+    legs, side = operation.legs, operation.summary.get("lado")
+    if len(legs) == 1 and side:
+        return (operation_side(side),)
     return tuple(leg_side(l["agr"]) for l in legs)
 
 
@@ -206,8 +214,7 @@ def _contradictions(legs, measured, chosen):
     notes = []
     for leg, m, c in zip(legs, measured, chosen):
         if m is not None and c is not None and m != c:
-            notes.append(f"{leg['contract_symbol']}: aggressiveness ({leg['agr']:+.2f}) says {m}, "
-                         f"the correction says {c}")
+            notes.append(f"{leg['contract_symbol']}: the measured side is {m}, the correction says {c}")
     return notes
 
 
@@ -229,7 +236,7 @@ def classify(operation, override=None):
         return Classification(DISCARDED, structure=f"{len(legs)} legs", reason="three legs or more",
                               direction=None, premium=gross, **base)
 
-    measured = _measured_sides(legs)
+    measured = _measured_sides(operation)
     sides, manual, warnings = measured, False, []
     if override is not None and (override.direction or override.strategy):
         chosen, problem = _override_sides(legs, override, measured)

@@ -79,11 +79,11 @@ def _load(loader, path, capture):
     return data
 
 
-def reconstruct_capture(files, remove_cancellations=True):
+def reconstruct_capture(files):
     """
-    Operaciones de una captura. Con remove_cancellations=False se reproduce la
-    versión del script anterior al 19/10/2026, que agrupaba las cancelaciones
-    como trades; solo sirve para validar niveles 3 antiguos.
+    Operations of a capture, grouped by the level-3 script with the prices
+    and estimated premiums of the capture's level 1. Older versions of the
+    script are reproduced only to validate stored level 3 files (validation.py).
     """
     capture = Capture(files.date, files)
     day = files.date.isoformat()
@@ -109,17 +109,16 @@ def reconstruct_capture(files, remove_cancellations=True):
         return capture
 
     rows = n3.preparar_filas(capture.level2.rows, capture.level2.fieldnames)
-    if remove_cancellations:
-        rows, capture.cancellations = n3.quitar_cancelaciones(rows)
-        if capture.cancellations:
-            unmatched = sum(1 for _, cancelled in capture.cancellations if cancelled is None)
-            capture.issues.append(Issue(INFO, files.level2.name,
-                                        f"{len(capture.cancellations)} cancellations dropped together with "
-                                        f"the trade they cancel"))
-            if unmatched:
-                capture.issues.append(Issue(WARNING, files.level2.name,
-                                            f"{unmatched} cancellations without a matching cancelled trade "
-                                            f"(dropped anyway)"))
+    rows, capture.cancellations = n3.quitar_cancelaciones(rows)
+    if capture.cancellations:
+        unmatched = sum(1 for _, cancelled in capture.cancellations if cancelled is None)
+        capture.issues.append(Issue(INFO, files.level2.name,
+                                    f"{len(capture.cancellations)} cancellations dropped together with "
+                                    f"the trade they cancel"))
+        if unmatched:
+            capture.issues.append(Issue(WARNING, files.level2.name,
+                                        f"{unmatched} cancellations without a matching cancelled trade "
+                                        f"(dropped anyway)"))
     capture.n_trades = len(rows)
     if not rows:
         capture.issues.append(Issue(WARNING, files.level2.name,
@@ -127,12 +126,18 @@ def reconstruct_capture(files, remove_cancellations=True):
         return capture
 
     prices = capture.level1.prices
+    estimates = {}       # the same as the script's cargar_nivel1(): the first row of each contract
+    for r in capture.level1.rows:
+        if r.get("contract_symbol") and r.get("premium_estimado") is not None:
+            estimates.setdefault(r["contract_symbol"], r["premium_estimado"])
+    groups = n3.agrupar(rows, prices, estimates)
+    ids = n3.ids_operaciones(groups)
     operations = []
-    for group in n3.agrupar(rows).values():
+    for root, group in groups.items():
         summary = n3.resumen(group)
         price = prices.get(summary["symbol"])
         operations.append(Operation(
-            id=n3.id_operacion(group),
+            id=ids[root],
             capture_date=files.date,
             summary=summary,
             legs=n3.patas_de(group),

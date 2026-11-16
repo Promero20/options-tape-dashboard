@@ -5,21 +5,22 @@ from pipeline import nivel3_agrupar as n3
 BUY = "buy"
 SELL = "sell"
 
-# La agresividad se calcula con coma flotante: un trade a un cuarto del
-# half-spread puede salir como 0.2499999999999989 o como 0.25000000000000333.
-# La tolerancia hace que la frontera sea siempre indeterminada.
-_TOLERANCE = 1e-9
+_FROM_SCRIPT = {n3.COMPRA: BUY, n3.VENTA: SELL}
 
 
 def leg_side(aggressiveness):
     """
-    Compra si la agresividad es > +0,25; venta si es < −0,25; None
-    (indeterminado) entre ambas, en la frontera o sin dato. El umbral es
-    ZONA_MUERTA del script de nivel 3.
+    Buy if the aggressiveness is > +0.25, sell if it is < −0.25, None
+    (undetermined) in between, at the boundary or without data. It is the
+    level-3 script's lado(), with its ZONA_MUERTA and TOLERANCIA_ZONA_MUERTA:
+    one boundary for the whole project (decisions 0017 and 0036).
     """
-    if aggressiveness is None or abs(aggressiveness) <= n3.ZONA_MUERTA + _TOLERANCE:
-        return None
-    return BUY if aggressiveness > 0 else SELL
+    return _FROM_SCRIPT.get(n3.lado(aggressiveness))
+
+
+def operation_side(script_side):
+    """The script's side of an operation ('compra', 'venta', 'indeterminado') as buy, sell or None."""
+    return _FROM_SCRIPT.get(script_side)
 
 
 def option_type(leg):

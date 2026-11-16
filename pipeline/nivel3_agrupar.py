@@ -3,20 +3,37 @@
 Nivel 3 — Agrupa las filas de Time & Sales (nivel 2) en operaciones que
 parecen pertenecer al mismo actor.
 
-Dos mecanismos de agrupación:
+Las condiciones multi-leg (MULTI_LEG) y las de una pata se agrupan aparte:
+una operación nunca mezcla las dos.
+
+Condiciones multi-leg, dos mecanismos combinados por union-find:
 
   A) Cruce entre contratos (patas de una misma orden multi-leg):
-     filas de contratos DISTINTOS del mismo subyacente ejecutadas
-     prácticamente en el mismo instante (<= TOL_MS). Una orden multi-leg
-     se imprime en el tape con el mismo timestamp para todas sus patas.
+     filas de contratos DISTINTOS del mismo subyacente, con la misma Trade
+     Condition, ejecutadas prácticamente en el mismo instante (<= TOL_MS).
+     Una orden multi-leg imprime todas sus patas con el mismo timestamp.
 
   B) Troceado dentro del mismo contrato:
      filas del MISMO contrato, con la MISMA Trade Condition, separadas
-     por menos de VENTANA_S segundos. Es el criterio manual del usuario
-     ("mismo trade condition y pocos minutos entre trades").
+     por VENTANA_S segundos o menos.
 
-Las dos se combinan: si un grupo del tipo B toca un cruce del tipo A,
-todo queda en la misma operación (union-find).
+Condiciones de una pata (AUTO, SLAN, ISOI...): nunca se unen contratos
+distintos. Dentro de cada contrato y condición:
+
+  1) Ráfaga: trades del mismo lado (compra, venta o indeterminado; ver
+     lado()) separados por VENTANA_RAFAGA_S segundos o menos forman un trozo.
+  2) Un trozo es relevante si su premium alcanza el menor entre el umbral
+     del subyacente y FRACCION_ESTIMADO del premium_estimado del contrato
+     en el nivel 1 (sin estimado, FRACCION_ESTIMADO del umbral).
+  3) Los trozos relevantes, por orden de inicio, se unen a la operación en
+     curso si empiezan VENTANA_S segundos o menos después de su último
+     trade y su lado es compatible (igual, o alguno indeterminado). El lado
+     de la operación es el del primer trozo con lado; un trozo del lado
+     contrario abre otra operación.
+  4) Un trozo no relevante es una operación propia y no se encadena.
+
+Así no se encadenan trades pequeños de actores distintos durante minutos
+ni se mezclan compras y ventas. Ningún trade desaparece.
 
 Uso por línea de comandos, como lo ejecuta el pipeline (sin cambios respecto a
 versiones anteriores):
@@ -30,10 +47,12 @@ filtrar por umbral:
 
   preparar_filas(filas, fieldnames) -> filas de trade listas para agrupar
   quitar_cancelaciones(rows)        -> (filas sin cancelaciones ni trades anulados, pares)
-  agrupar(rows)                     -> {raíz: [filas]} (un grupo = una operación)
+  cargar_nivel1(path)               -> (precio por símbolo, premium_estimado por contrato)
+  agrupar(rows, precios, estimados) -> {raíz: [filas]} (un grupo = una operación)
   patas_de(grupo)                   -> detalle por pata (resumen_pata de cada contrato)
   resumen(grupo)                    -> fila de nivel3_operaciones (premium en $)
   id_operacion(grupo)               -> 'YYYYMMDD-SIMBOLO-HH:MM:SS.mmm-TC'
+  ids_operaciones(grupos)           -> {raíz: ID único en la captura}
   resumir_todas(grupos)             -> resúmenes ordenados por premium descendente
   pasa_umbral(premium, precio)      -> bool, umbral por tramo de precio
   filtrar_por_umbral(todas, precios) -> (operaciones que pasan, nº descartadas)
@@ -47,19 +66,35 @@ Historial de la salida:
               repositorio del dashboard); si hay cancelaciones, es idéntica a
               la de la versión de referencia sobre el mismo nivel 2 sin esas
               filas, y la consola añade una línea con el recuento.
+  16/11/2026  nueva regla de agrupación para las condiciones de una pata
+              (ráfagas, trozos relevantes y encadenado por lado); el cruce
+              de 50 ms solo une condiciones multi-leg; el 0,25 exacto de
+              agresividad es indeterminado también en 'direccion' y en el
+              precio neto. Columnas nuevas al final: lado, n_trozos,
+              premium_trozo_mayor_M y lado_de_trozo_menor. Las operaciones
+              de condiciones multi-leg no cambian.
 """
 
 import csv, sys, collections
 from datetime import datetime
 
-VENTANA_S = 120.0   # separación máxima entre trades del mismo contrato
-TOL_MS    = 50      # tolerancia para considerar dos patas simultáneas
+VENTANA_S = 120.0          # multi-leg: separación máxima entre trades del mismo contrato;
+                           # una pata: entre un trozo y el último trade de la operación
+TOL_MS    = 50             # tolerancia para considerar dos patas multi-leg simultáneas
+VENTANA_RAFAGA_S = 1.0     # separación máxima entre trades de una ráfaga (un trozo)
+FRACCION_ESTIMADO = 0.10   # un trozo es relevante desde esta fracción del premium_estimado
 
 MULTI_LEG = {'MLET','MLAT','MLFT','MESL','MLCT','MFSL',
              'TLET','TLAT','TLCT','TLFT','TASL','TESL','TFSL'}
 STOCK_OPT = {'TLET','TLAT','TLCT','TLFT','TASL','TESL','TFSL'}  # opciones + acciones
 CANCELACIONES = {'CANC','CNCL','CNCO','CNOL'}  # anulan un trade anterior
-ZONA_MUERTA = 0.25  # |agresividad| por debajo = intención poco clara
+ZONA_MUERTA = 0.25  # |agresividad| hasta aquí, frontera incluida = intención poco clara
+# La agresividad se calcula en coma flotante: un trade justo en la frontera
+# sale como 0.2499999... o como 0.2500000...3. La tolerancia la deja siempre
+# en la zona muerta.
+TOLERANCIA_ZONA_MUERTA = 1e-9
+
+COMPRA, VENTA, INDETERMINADO = 'compra', 'venta', 'indeterminado'
 
 # El CSV de nivel 2 debería traer siempre estos nombres de columna (ver el
 # contrato de columnas de salida del pipeline). Esta tabla es un colchón de
@@ -122,6 +157,13 @@ def preparar_filas(filas, fieldnames):
     return rows
 
 
+def lado(agr):
+    """'compra' si agr > +ZONA_MUERTA, 'venta' si < -ZONA_MUERTA; None en medio, en la frontera o sin dato."""
+    if agr is None or abs(agr) <= ZONA_MUERTA + TOLERANCIA_ZONA_MUERTA:
+        return None
+    return COMPRA if agr > 0 else VENTA
+
+
 def cargar(path):
     with open(path, encoding='utf-8') as f:
         reader = csv.DictReader(f)
@@ -171,18 +213,36 @@ class UF:
         if ra != rb: s.p[rb] = ra
 
 
-def agrupar(rows):
+def agrupar(rows, precios=None, estimados=None):
+    """
+    Agrupa las filas en operaciones: {raíz: [filas]}. `precios` es el precio
+    de cada subyacente y `estimados` el premium_estimado de cada contrato,
+    ambos del nivel 1 de la captura (ver cargar_nivel1); sin ellos, todos
+    los trozos son relevantes. Anota en cada fila de una pata su trozo
+    ('trozo') y el lado del trozo ('lado_trozo'), que usa resumen().
+    """
     uf = UF(len(rows))
+    multi_leg = [i for i, r in enumerate(rows) if r['Trade Condition'] in MULTI_LEG]
+    una_pata = [i for i, r in enumerate(rows) if r['Trade Condition'] not in MULTI_LEG]
+    _unir_multi_leg(rows, multi_leg, uf)
+    _unir_una_pata(rows, una_pata, uf, precios or {}, estimados or {})
+
+    grupos = collections.defaultdict(list)
+    for i in range(len(rows)):
+        grupos[uf.find(i)].append(rows[i])
+    return grupos
+
+
+def _unir_multi_leg(rows, idxs_multi_leg, uf):
     por_sym = collections.defaultdict(list)
-    for i, r in enumerate(rows):
-        por_sym[r['symbol']].append(i)
+    for i in idxs_multi_leg:
+        por_sym[rows[i]['symbol']].append(i)
 
     # A) patas simultáneas en contratos distintos del mismo subyacente,
     #    Y con la misma Trade Condition (una orden multi-leg imprime
     #    todas sus patas bajo el mismo código de mecanismo de ejecución;
     #    exigirlo evita encadenar prints de mecanismos distintos que
     #    solo coinciden en milisegundo por casualidad de mercado)
-    cruces = set()
     for sym, idxs in por_sym.items():
         idxs.sort(key=lambda i: rows[i]['t'])
         for a in range(len(idxs)):
@@ -195,29 +255,93 @@ def agrupar(rows):
                 if (rows[ia]['contract_symbol'] != rows[ib]['contract_symbol']
                         and rows[ia]['Trade Condition'] == rows[ib]['Trade Condition']):
                     uf.union(ia, ib)
-                    cruces.add(uf.find(ia))
 
     # B) troceado dentro del mismo contrato + misma condición
     por_clave = collections.defaultdict(list)
-    for i, r in enumerate(rows):
-        por_clave[(r['contract_symbol'], r['Trade Condition'])].append(i)
+    for i in idxs_multi_leg:
+        por_clave[(rows[i]['contract_symbol'], rows[i]['Trade Condition'])].append(i)
     for idxs in por_clave.values():
         idxs.sort(key=lambda i: rows[i]['t'])
         for j in range(1, len(idxs)):
             if (rows[idxs[j]]['t'] - rows[idxs[j-1]]['t']).total_seconds() <= VENTANA_S:
                 uf.union(idxs[j-1], idxs[j])
 
-    grupos = collections.defaultdict(list)
-    for i in range(len(rows)):
-        grupos[uf.find(i)].append(rows[i])
-    return grupos
+
+def umbral_trozo(precio, estimado):
+    """
+    Premium desde el que un trozo es relevante: el menor entre el umbral del
+    subyacente y FRACCION_ESTIMADO del premium_estimado del contrato; sin
+    estimado, FRACCION_ESTIMADO del umbral. Sin precio, None: todos los
+    trozos son relevantes, igual que pasa_umbral() no descarta sin precio.
+    """
+    if precio is None:
+        return None
+    umbral = umbral_premium(precio)
+    if estimado is not None and estimado > 0:
+        return min(umbral, FRACCION_ESTIMADO * estimado)
+    return FRACCION_ESTIMADO * umbral
+
+
+def _rafagas(rows, idxs):
+    """Trozos de un contrato y condición: [(lado, [índices])], por lado y con VENTANA_RAFAGA_S entre trades."""
+    por_lado = collections.defaultdict(list)
+    for i in idxs:
+        por_lado[lado(rows[i]['agr'])].append(i)
+    trozos = []
+    for l, del_lado in por_lado.items():
+        del_lado.sort(key=lambda i: (rows[i]['t'], i))
+        actual = [del_lado[0]]
+        for i in del_lado[1:]:
+            if (rows[i]['t'] - rows[actual[-1]]['t']).total_seconds() <= VENTANA_RAFAGA_S:
+                actual.append(i)
+            else:
+                trozos.append((l, actual))
+                actual = [i]
+        trozos.append((l, actual))
+    return trozos
+
+
+def _unir_una_pata(rows, idxs_una_pata, uf, precios, estimados):
+    por_clave = collections.defaultdict(list)
+    for i in idxs_una_pata:
+        por_clave[(rows[i]['contract_symbol'], rows[i]['Trade Condition'])].append(i)
+    n_trozo = 0
+    for (contrato, _), idxs in por_clave.items():
+        minimo = umbral_trozo(precios.get(rows[idxs[0]]['symbol']), estimados.get(contrato))
+        relevantes = []
+        for l, trozo in _rafagas(rows, idxs):
+            n_trozo += 1
+            for i in trozo:
+                rows[i]['trozo'] = n_trozo
+                rows[i]['lado_trozo'] = l
+                uf.union(trozo[0], i)
+            if minimo is None or sum(rows[i]['premium'] for i in trozo) >= minimo:
+                relevantes.append((l, trozo))
+
+        # encadenado: una sola operación en curso por contrato y condición
+        relevantes.sort(key=lambda c: (rows[c[1][0]]['t'], c[1][0]))
+        en_curso = None   # (primer índice, lado, último trade)
+        for l, trozo in relevantes:
+            inicio, fin = rows[trozo[0]]['t'], max(rows[i]['t'] for i in trozo)
+            if (en_curso is not None
+                    and (inicio - en_curso[2]).total_seconds() <= VENTANA_S
+                    and (l is None or en_curso[1] is None or l == en_curso[1])):
+                uf.union(en_curso[0], trozo[0])
+                en_curso = (en_curso[0], en_curso[1] or l, max(en_curso[2], fin))
+            else:
+                en_curso = (trozo[0], l, fin)
 
 
 def direccion(tipo, agr):
     """Traduce agresividad + tipo de contrato a sesgo direccional."""
-    if agr is None or abs(agr) < ZONA_MUERTA:
-        return 'indeterminado'
-    comprador = agr > 0
+    return direccion_de_lado(tipo, lado(agr))
+
+
+def direccion_de_lado(tipo, l):
+    """Sesgo direccional de comprar o vender un contrato: comprar call o vender put es alcista."""
+    if l is None:
+        return INDETERMINADO
+    comprador = l == COMPRA
     if tipo.lower().startswith('c'):
         return 'bull' if comprador else 'bear'
     return 'bear' if comprador else 'bull'
@@ -257,7 +381,7 @@ def precio_neto_operacion(filas_pata, patas_incompletas):
     if len(filas_pata) == 1:
         return round(filas_pata[0]['precio_medio'], 4), 'single_leg'
     for p in filas_pata:
-        if p['agr'] is None or abs(p['agr']) < ZONA_MUERTA:
+        if lado(p['agr']) is None:
             return '', 'no_calculable_direccion_ambigua'
     neto = sum((p['precio_medio'] if p['agr'] > 0 else -p['precio_medio'])
                for p in filas_pata)
@@ -299,6 +423,35 @@ def patas_de(grupo):
     return filas_pata
 
 
+def trozos_de(grupo):
+    """
+    Trozos de una operación de una pata, por orden de inicio: [(lado,
+    premium)]. Lista vacía si la operación es multi-leg (sus filas no se
+    trocean).
+    """
+    por_trozo = collections.defaultdict(list)
+    for r in grupo:
+        if 'trozo' in r:
+            por_trozo[r['trozo']].append(r)
+    trozos = sorted(por_trozo.values(), key=lambda rs: min(r['t'] for r in rs))
+    return [(rs[0]['lado_trozo'], sum(r['premium'] for r in rs)) for rs in trozos]
+
+
+def _campos_trozos(grupo):
+    """Lado de la operación, nº de trozos, premium del mayor y si el lado sale de un trozo menor."""
+    trozos = trozos_de(grupo)
+    if not trozos:
+        return {'lado': '', 'n_trozos': '', 'premium_trozo_mayor': '', 'lado_de_trozo_menor': ''}
+    lado_op = next((l for l, _ in trozos if l is not None), None)
+    mayor = max(trozos, key=lambda t: t[1])
+    return {
+        'lado': lado_op or INDETERMINADO,
+        'n_trozos': len(trozos),
+        'premium_trozo_mayor': round(mayor[1], 2),
+        'lado_de_trozo_menor': mayor[0] is None and lado_op is not None,
+    }
+
+
 def id_operacion(grupo):
     """
     ID estable de la operación: fecha, subyacente, hora con milisegundos y
@@ -307,15 +460,48 @@ def id_operacion(grupo):
 
     La Trade Condition es necesaria: dos grupos distintos pueden empezar en
     el mismo milisegundo y el mismo contrato con condiciones distintas (p. ej.
-    AUTO e ISOI). Con ella el ID es único dentro de una captura: los dos
-    mecanismos de agrupación solo unen filas de la misma condición, así que
-    todas las filas de un grupo la comparten, y dos grupos con el mismo
-    subyacente, milisegundo y condición ya habrían quedado unidos.
+    AUTO e ISOI). La agrupación solo une filas de la misma condición, así que
+    todas las filas de un grupo la comparten. En las condiciones multi-leg,
+    dos grupos con el mismo subyacente, milisegundo y condición ya habrían
+    quedado unidos; en las de una pata no (contratos o lados distintos), y
+    ids_operaciones() deshace esas coincidencias.
     """
     primero = min(grupo, key=lambda r: r['t'])
     return '{}-{}-{}-{}'.format(
         primero['t'].strftime('%Y%m%d'), primero['symbol'],
         primero['t'].strftime('%H:%M:%S.%f')[:-3], primero['Trade Condition'])
+
+
+def _sufijo_id(grupo):
+    """Contrato y lado de una operación de una pata: '20261120-185C-venta'."""
+    pata = patas_de(grupo)[0]
+    tipo = 'C' if pata['type'].lower().startswith('c') else 'P'
+    lado_op = _campos_trozos(grupo)['lado'] or INDETERMINADO
+    return f"{pata['exp_date'].replace('-', '')}-{_fmt_strike(float(pata['strike']))}{tipo}-{lado_op}"
+
+
+def ids_operaciones(grupos):
+    """
+    ID único de cada operación de la captura: {raíz: ID}.
+
+    Con la regla de una pata, dos operaciones pueden empezar en el mismo
+    milisegundo con el mismo subyacente y Trade Condition (una compra y una
+    venta del mismo contrato, o dos contratos distintos) y tener el mismo
+    id_operacion(). Entonces la de mayor premium conserva ese ID (es la que
+    tenía con la regla anterior en casi todos los casos) y las demás añaden
+    su contrato y su lado, que dependen solo del contenido: el ID sigue
+    siendo estable entre capturas.
+    """
+    por_id = collections.defaultdict(list)
+    for raiz, grupo in grupos.items():
+        por_id[id_operacion(grupo)].append(raiz)
+    ids = {}
+    for base, raices in por_id.items():
+        orden = sorted(raices, key=lambda r: (-sum(f['premium'] for f in grupos[r]), _sufijo_id(grupos[r])))
+        ids[orden[0]] = base
+        for raiz in orden[1:]:
+            ids[raiz] = f'{base}-{_sufijo_id(grupos[raiz])}'
+    return ids
 
 
 def resumen(grupo):
@@ -333,6 +519,10 @@ def resumen(grupo):
     patas_incompletas = (any(r['Trade Condition'] in MULTI_LEG for r in grupo)
                           and len(filas_pata) == 1)
     precio_neto, precio_neto_metodo = precio_neto_operacion(filas_pata, patas_incompletas)
+    trozos = _campos_trozos(grupo)
+    # una operación de una pata tiene el lado con el que se construyó
+    sesgo = (direccion_de_lado(dom['type'], _lado_operacion(trozos)) if trozos['lado']
+             else direccion(dom['type'], dom['agr']))
 
     # Strike: un valor si todas las patas comparten strike (incluye calendars
     # puros); "x-y" si hay dos strikes distintos (vertical/diagonal); lista
@@ -372,7 +562,7 @@ def resumen(grupo):
         'precio_neto': precio_neto,
         'precio_neto_metodo': precio_neto_metodo,
         'agresividad_pond': round(agr_pond, 3) if agr_pond is not None else '',
-        'direccion': direccion(dom['type'], dom['agr']),
+        'direccion': sesgo,
         'trade_conditions': '|'.join(f'{c}x{n}' for c, n in cond.most_common()),
         'multi_leg_declarado': any(r['Trade Condition'] in MULTI_LEG for r in grupo),
         'patas_incompletas': patas_incompletas,
@@ -383,7 +573,12 @@ def resumen(grupo):
         'strike': strike_fmt,
         'fecha_expiracion': exp_fmt,
         'fecha_operacion': fecha_operacion_fmt,
+        **trozos,
     }
+
+
+def _lado_operacion(campos_trozos):
+    return None if campos_trozos['lado'] == INDETERMINADO else campos_trozos['lado']
 
 
 def resumir_todas(grupos):
@@ -424,20 +619,49 @@ def filtrar_por_umbral(todas, precios):
 
 
 def cargar_precios(path_nivel1):
-    precios = {}
+    return cargar_nivel1(path_nivel1)[0]
+
+
+def _contrato_nivel1(r):
+    """
+    Contrato de una fila de nivel 1 con el formato del nivel 2
+    ('SIMBOLO|AAAAMMDD|STRIKE.00C'). Algunos nivel 1 antiguos no traen la
+    columna: se reconstruye igual que lo hace el dashboard. None si no se puede.
+    """
+    contrato = r.get('contract_symbol') or r.get('option_symbol')
+    if contrato:
+        return contrato
+    try:
+        tipo = 'C' if r['type'].lower().startswith('c') else 'P'
+        return f"{r['symbol']}|{r['exp_date'].replace('-', '')}|{float(r['strike']):.2f}{tipo}"
+    except (KeyError, ValueError, AttributeError):
+        return None
+
+
+def cargar_nivel1(path_nivel1):
+    """Precio de cada subyacente y premium_estimado de cada contrato del nivel 1: (precios, estimados)."""
+    precios, estimados = {}, {}
     with open(path_nivel1, encoding='utf-8') as f:
         for r in csv.DictReader(f):
             precios.setdefault(r['symbol'], float(r['price']))
-    return precios
+            contrato = _contrato_nivel1(r)
+            if contrato and r.get('premium_estimado'):
+                estimados.setdefault(contrato, float(r['premium_estimado']))
+    return precios, estimados
 
 
 def escribir_operaciones(salida, todas, ops):
-    """Escribe nivel3_operaciones con el premium en millones (solo presentación)."""
-    campos = [c if c != 'premium_total' else 'premium_total_M' for c in todas[0].keys()]
+    """Escribe nivel3_operaciones con los premiums en millones (solo presentación)."""
+    en_millones = ('premium_total', 'premium_trozo_mayor')
+    campos = [c + '_M' if c in en_millones else c for c in todas[0].keys()]
     filas_salida = []
     for o in ops:
-        fila = dict(o)
-        fila['premium_total_M'] = round(fila.pop('premium_total') / 1_000_000, 3)
+        fila = {}
+        for c, v in o.items():
+            if c in en_millones:
+                fila[c + '_M'] = round(v / 1_000_000, 3) if v != '' else ''
+            else:
+                fila[c] = v
         filas_salida.append(fila)
 
     with open(salida, 'w', newline='', encoding='utf-8') as f:
@@ -453,10 +677,9 @@ def main(entrada, path_nivel1, salida):
             f'El CSV de nivel 2 no tiene ningún trade: {entrada}\n'
             'No se genera el nivel 3 de este día.'
         )
-    grupos = agrupar(rows)
+    precios, estimados = cargar_nivel1(path_nivel1)
+    grupos = agrupar(rows, precios, estimados)
     todas = resumir_todas(grupos)
-
-    precios = cargar_precios(path_nivel1)
     ops, descartadas = filtrar_por_umbral(todas, precios)
 
     escribir_operaciones(salida, todas, ops)

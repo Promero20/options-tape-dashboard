@@ -91,6 +91,8 @@ def test_manual_leg_completes_the_operation_with_the_script(dataset):
     # la pata manual no tiene agresividad: la media es la de la pata real
     assert completed.summary["agresividad_pond"] == op.summary["agresividad_pond"]
     assert op.summary["n_patas"] == 1          # la operación original no cambia
+    # a multi-leg operation has no chunks, with or without the manual leg (decision 0036)
+    assert all(completed.summary[k] == "" for k in ("lado", "n_trozos", "premium_trozo_mayor", "lado_de_trozo_menor"))
 
     r = c.classify(completed, Override(strategy="bull_call"))
     assert (r.destination, r.direction, r.strike) == (c.NET, c.BULL, 120.0)
