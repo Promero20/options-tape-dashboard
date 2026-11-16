@@ -13,6 +13,8 @@ from tape_dashboard.config import load_settings
 REPO_ROOT = Path(__file__).resolve().parent.parent
 NEW_SCRIPT = REPO_ROOT / "pipeline" / "nivel3_agrupar.py"
 LEGACY_SCRIPT = REPO_ROOT / "tests" / "legacy" / "nivel3_agrupar_20261001.py"
+# the script before the grouping rule of 16/11/2026 (decision 0036)
+PREVIOUS_SCRIPT = REPO_ROOT / "tests" / "legacy" / "nivel3_agrupar_20261021.py"
 
 
 def data_dir():
