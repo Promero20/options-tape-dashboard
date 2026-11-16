@@ -11,7 +11,7 @@ import pytest
 
 from helpers import PREVIOUS_SCRIPT
 from pipeline import nivel3_agrupar as n3
-from synthetic import scenario, trade, write_level1
+from synthetic import scenario, trade, write_capture, write_level1
 from tape_dashboard.rules import classification as cl
 from tape_dashboard.rules.sides import BUY, SELL, leg_side
 
@@ -194,3 +194,32 @@ def _module(path):
     spec.loader.exec_module(module)
     return module
 
+
+# --- tab 1 ----------------------------------------------------------------------------------------------
+
+def test_tab_1_flags_and_notes_the_chunks(tmp_path):
+    from datetime import date
+
+    from tape_dashboard.app.tabs.operations.rows import MANY_CHUNKS, SIDE_FROM_SMALLER_CHUNK, operation_rows
+    from tape_dashboard.data.dataset import load_dataset
+    from tape_dashboard.edits.apply import apply_edits
+    from tape_dashboard.edits.store import Edits
+
+    trades = [at("10:00:00.000", side="mid", size=3000), at("10:00:30.000", size=1000)]
+    trades += [at(f"11:00:{2 * k:02d}.000", strike=35) for k in range(11)]      # 11 chunks, 2 s apart
+    trades += [at(f"12:00:{2 * k:02d}.000", strike=40) for k in range(10)]      # 10 chunks
+    folder = tmp_path / "data"
+    folder.mkdir()
+    write_capture(folder, "20261013", trades)
+    dataset = load_dataset(folder)
+    items = apply_edits(dataset.captures[date(2026, 10, 13)].operations, Edits.empty())
+    rows = {r["id"]: r for r in operation_rows(items, dataset)}
+
+    smaller, many, ten = (rows[f"20261013-AAA-{h}:00:00.000-AUTO"] for h in (10, 11, 12))
+    assert (smaller["chunks"], smaller["largest_chunk_m"]) == (2, 1.5)
+    assert SIDE_FROM_SMALLER_CHUNK in smaller["flags"] and MANY_CHUNKS not in smaller["flags"]
+    assert "the operation's side comes from a smaller one" in smaller["notes"]
+    assert smaller["direction"] == "bull"                       # the side of the bought chunk
+    assert (many["chunks"], many["largest_chunk_m"]) == (11, 0.5)
+    assert MANY_CHUNKS in many["flags"] and "11 chunks chained together" in many["notes"]
+    assert ten["chunks"] == 10 and ten["flags"] == ""

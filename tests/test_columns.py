@@ -97,6 +97,12 @@ def test_size_trades_duration_and_volume(dataset):
     assert (vertical["legs"], vertical["size"], vertical["contract_volume"]) == (2, 4500, 2000)  # added up
 
 
+def test_chunks_of_a_single_leg_operation_and_none_for_multi_leg(dataset):
+    rows = rows_by_id(dataset)
+    assert (rows[SINGLE]["chunks"], rows[SINGLE]["largest_chunk_m"]) == (3, 0.25)     # three bursts of buys
+    assert (rows[VERTICAL]["chunks"], rows[VERTICAL]["largest_chunk_m"]) == (None, None)
+
+
 def test_a_manual_leg_leaves_the_volume_empty(dataset):
     edits = Edits({INCOMPLETE: Override(strategy="bull_call")},
                   {INCOMPLETE: [ManualLeg(1, INCOMPLETE, "call", 130.0, "2026-12-18", 1.5, 3000)]})

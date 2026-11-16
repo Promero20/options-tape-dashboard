@@ -5,6 +5,8 @@ from ....rules.classification import DESTINATIONS, PENDING
 from ....rules.sides import leg_side
 
 EDITED, ANOMALOUS, NOTE = "✎", "⚠", "ⓘ"
+SIDE_FROM_SMALLER_CHUNK, MANY_CHUNKS = "◐", "≡"
+MANY_CHUNKS_FROM = 11          # more than 10 chunks (decision 0036)
 
 
 def _blank_to_none(value):
@@ -30,8 +32,16 @@ def operation_row(item, volume_of=None):
     notes = list(c.warnings) + list(item.problems)
     if c.anomalous_size_ratio:
         notes.append(f"anomalous size ratio: largest leg {c.size_ratio:.1f}× the smallest")
+    side_from_smaller = s.get("lado_de_trozo_menor") is True
+    chunks = s.get("n_trozos") or None
+    many_chunks = chunks is not None and chunks >= MANY_CHUNKS_FROM
+    if side_from_smaller:
+        notes.append("the largest chunk has no clear side: the operation's side comes from a smaller one")
+    if many_chunks:
+        notes.append(f"{chunks} chunks chained together: check that they belong to one actor")
     flags = (EDITED if item.edited else "") + (ANOMALOUS if c.anomalous_size_ratio else "") + \
-            (NOTE if c.warnings or item.problems else "")
+            (NOTE if c.warnings or item.problems else "") + \
+            (SIDE_FROM_SMALLER_CHUNK if side_from_smaller else "") + (MANY_CHUNKS if many_chunks else "")
     volume = _contract_volume(op, volume_of)
     return {
         "id": op.id,
@@ -54,6 +64,8 @@ def operation_row(item, volume_of=None):
         "trades": s["n_trades"],
         "size": s["size_total"],
         "duration_s": s["duracion_s"],
+        "chunks": chunks,
+        "largest_chunk_m": round(s["premium_trozo_mayor"] / 1_000_000, 3) if s.get("premium_trozo_mayor") else None,
         "contract_volume": volume,
         "volume_share": round(s["size_total"] / volume * 100, 1) if volume else None,
         "edited": item.edited,
@@ -135,6 +147,10 @@ COLUMN_DEFS = [
      "filter": "agNumberColumnFilter", "type": "rightAligned", "valueFormatter": number_format(0), "hide": True},
     {"field": "duration_s", "headerName": "Duration (s)", "filter": "agNumberColumnFilter", "type": "rightAligned",
      "valueFormatter": number_format(1), "hide": True},
+    {"field": "chunks", "headerName": "Chunks", "headerTooltip": "Bursts chained into the operation (single-leg "
+     "conditions only)", "filter": "agNumberColumnFilter", "type": "rightAligned", "hide": True},
+    {"field": "largest_chunk_m", "headerName": "Largest chunk (M)", "filter": "agNumberColumnFilter",
+     "type": "rightAligned", "valueFormatter": number_format(3), "hide": True},
     {"field": "contract_volume", "headerName": "Contract volume",
      "headerTooltip": "Volume of the contract on the trade date; added up across legs",
      "filter": "agNumberColumnFilter", "type": "rightAligned", "valueFormatter": number_format(0), "hide": True},
@@ -150,7 +166,7 @@ ALWAYS_SHOWN = "symbol"
 COLUMN_GROUPS = (
     ("Operation", ("direction", "flags", "capture", "trade_date", "structure", "strike", "expiration", "premium_m",
                    "net_price", "aggressiveness", "destination", "wall", "conditions", "start", "end", "legs",
-                   "trades", "size", "duration_s")),
+                   "trades", "size", "duration_s", "chunks", "largest_chunk_m")),
     ("Volume", ("contract_volume", "volume_share")),
     ("Technical", ("id", "script_direction")),
 )
