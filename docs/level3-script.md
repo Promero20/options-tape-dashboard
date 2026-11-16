@@ -78,4 +78,4 @@ The dashboard never writes to the data folder, so deployment is manual:
 | Phase 0 | — | no | Refactor without output changes; no need to deploy it |
 | 19/10/2026 | `59962f5b960389732e1a0b2425b04e74a94f5b0ae3adafc0fbacbedadff247a2` | 19/10/2026 | Drops cancellations and the trades they cancel |
 | 21/10/2026 | `aea159f50faf93ed6b7fef345d884e6ac8e38247275287c3ebc542b64d8c571a` | 23/10/2026 | Generalises a comment about where the column names come from; same output. Hash checked on both copies after deployment. Frozen in `tests/legacy/` |
-| 16/11/2026 | `326dfe8b5e3d50d11f53a236905bdfbff4805ceee96e98b826adef194caa5984` | pending | Grouping rule for single-leg conditions and the ±0.25 boundary in `direccion` and the net price ([decision 0036](decisions/0036-grouping-rule-for-single-leg-conditions.md)); four new columns |
+| 16/11/2026 | `326dfe8b5e3d50d11f53a236905bdfbff4805ceee96e98b826adef194caa5984` | 16/11/2026 | Grouping rule for single-leg conditions and the ±0.25 boundary in `direccion` and the net price ([decision 0036](decisions/0036-grouping-rule-for-single-leg-conditions.md)); four new columns. Hash checked on both copies after deployment |
