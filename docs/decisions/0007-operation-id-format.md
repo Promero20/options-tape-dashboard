@@ -1,7 +1,7 @@
 # 0007. The operation ID includes the Trade Condition
 
 - **Date:** 2026-10-16
-- **Status:** accepted (amends the specification)
+- **Status:** accepted (amends the specification), amended by [0036](0036-grouping-rule-for-single-leg-conditions.md)
 
 ## Context
 
@@ -22,3 +22,5 @@ It is unique within a capture by construction: both grouping mechanisms only joi
 
 - The ID changes if the grouping logic changes; those edits would become orphans (see [0003](0003-edits-in-own-files.md)).
 - The same operation captured on two days has the same ID in both (see [0010](0010-operation-in-several-captures.md)).
+
+**Amended on 16/11/2026** ([0036](0036-grouping-rule-for-single-leg-conditions.md)): with the grouping rule for single-leg conditions, two operations can start on the same millisecond, underlying and condition, so the ID is no longer unique by construction. `ids_operaciones()` keeps the ID for the one with the most premium and adds the contract and side to the others (`…-AUTO-20261120-185C-venta`). The suffix depends only on the content, so it is stable.

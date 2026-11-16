@@ -1,7 +1,7 @@
 # 0017. An aggressiveness of exactly ±0.25 is an undetermined side
 
 - **Date:** 2026-10-19
-- **Status:** accepted
+- **Status:** accepted, amended by [0036](0036-grouping-rule-for-single-leg-conditions.md)
 
 ## Context
 
@@ -22,3 +22,5 @@ The script is not touched: changing it would alter its output (the `direccion` a
 ## Consequences
 
 On those legs, the script's `direccion` column can say bull or bear while the classification says undetermined. The list shows the classification's ([0021](0021-direction-shown-in-the-list.md)).
+
+**Amended on 16/11/2026** ([0036](0036-grouping-rule-for-single-leg-conditions.md)): the script now uses the same boundary and tolerance (`lado()`, with `ZONA_MUERTA` and `TOLERANCIA_ZONA_MUERTA`) for its sides, its `direccion` column and the net price, and `leg_side()` calls it. The script and the classification no longer disagree at the boundary.

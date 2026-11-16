@@ -48,7 +48,7 @@ One row per contract. Only the contracts selected by the pipeline (top 25 by `pr
 | `ratio_reconciliacion` | | no | number | `volumen_en_fecha / oi_chg` |
 | `reconciliacion_fallida`, `reconciliacion_ambigua` | | no | boolean or empty | Empty if the contract was not selected |
 
-The **price of an underlying** is the one in the first row of its symbol, as the level-3 script does. In every capture analysed, all rows of a symbol have the same price.
+The **price of an underlying** is the one in the first row of its symbol, as the level-3 script does. In every capture analysed, all rows of a symbol have the same price. The script also reads each contract's `premium_estimado` (from its first row), which decides when a chunk of single-leg trades is relevant ([business rules](business-rules.md#single-leg-conditions)); it rebuilds the contract the same way when the file has no contract column.
 
 ### Known level-1 variants
 
@@ -106,7 +106,8 @@ Output of `pipeline/nivel3_agrupar.py`: one row per operation above the threshol
 
 | Variant | Captures | Columns |
 |---|---|---|
-| N3-C (current) | 11/09 onwards | `symbol, estructura, n_patas, n_trades, size_total, premium_total_M, precio_neto, precio_neto_metodo, agresividad_pond, direccion, trade_conditions, multi_leg_declarado, patas_incompletas, stock_option, hora_inicio, hora_fin, duracion_s, strike, fecha_expiracion, fecha_operacion` |
+| N3-D (current) | from the deployment of the grouping rule of 16/11/2026 | N3-C plus, at the end, `lado, n_trozos, premium_trozo_mayor_M, lado_de_trozo_menor` ([decision 0036](decisions/0036-grouping-rule-for-single-leg-conditions.md)). Empty for operations of multi-leg conditions |
+| N3-C | 11/09 to 16/11 | `symbol, estructura, n_patas, n_trades, size_total, premium_total_M, precio_neto, precio_neto_metodo, agresividad_pond, direccion, trade_conditions, multi_leg_declarado, patas_incompletas, stock_option, hora_inicio, hora_fin, duracion_s, strike, fecha_expiracion, fecha_operacion` |
 | N3-B | 09/09 | No `strike`, `fecha_expiracion` or `fecha_operacion`; has `patas` |
 | N3-A | 25/08 | No threshold filter, `premium_total` in dollars, no net price; has `patas` |
 
@@ -116,9 +117,9 @@ For every capture with level 2, the dashboard groups **all** trades with the scr
 
 | Field | Content |
 |---|---|
-| `id` | `YYYYMMDD-SYMBOL-HH:MM:SS.mmm-TC` ([business rules](business-rules.md#4-operation-id)) |
+| `id` | `YYYYMMDD-SYMBOL-HH:MM:SS.mmm-TC`, or with the suffix `-YYYYMMDD-STRIKE{C\|P}-side` when two single-leg operations start on the same millisecond ([business rules](business-rules.md#4-operation-id)) |
 | `capture_date` | Capture date (the one the range selectors use) |
-| `summary` | The script's `resumen()` row, with `premium_total` in dollars |
+| `summary` | The script's `resumen()` row, with `premium_total` and `premium_trozo_mayor` in dollars |
 | `legs` | Per-leg detail from `patas_de()`: `contract_symbol, type, strike, exp_date, n_trades, size, premium, agr, precio_medio` |
 | `trades` | The group's trade rows |
 | `price` | Underlying price in the capture's level 1 |

@@ -33,22 +33,43 @@ agresividad = (trade price − mid) / half_spread
 
 - `+1`: executed at the ask (aggressive buyer). `−1`: executed at the bid (aggressive seller). Above `+1` or below `−1`: paying more than the ask or selling below the bid.
 - If `bid = ask`, the aggressiveness is left empty (`spread_cero = True`). It is not set to 0, because 0 would mean "close to the midpoint".
-- A leg is **bought** if its aggressiveness is > +0.25, **sold** if it is < −0.25, and **undetermined** in between (`ZONA_MUERTA = 0.25`).
+- A trade or a leg is **bought** if its aggressiveness is > +0.25, **sold** if it is < −0.25, and **undetermined** in between, at the boundary or without data (`ZONA_MUERTA = 0.25`, with the 10⁻⁹ tolerance `TOLERANCIA_ZONA_MUERTA`; see [section 5](#side-of-each-leg)). The script's `lado()` applies it, and the dashboard calls the same function.
 - A leg's aggressiveness is the size-weighted average of its trades', counting only the trades that have one.
 
 ## 3. Grouping trades into operations
 
 **Cancellations are dropped before grouping.** A row with condition `CANC`, `CNCL`, `CNCO` or `CNOL` is not a trade: it cancels an earlier one. Both the cancellation and the trade it cancels are dropped; the cancelled trade is the most recent earlier one with the same contract, size and price ([decision 0015](decisions/0015-drop-cancellations.md)).
 
-A group of trades is an operation: what looks like a single order or a single actor. There are two mechanisms, combined with union-find (if a trade is linked by either one, its whole group is merged):
+A group of trades is an operation: what looks like a single order or a single actor. Trades of multi-leg conditions and of single-leg conditions are grouped apart, so an operation never mixes them, and **all the rows of an operation share the same Trade Condition** ([decision 0036](decisions/0036-grouping-rule-for-single-leg-conditions.md)). No trade is left out: each one is in exactly one operation.
+
+### Multi-leg conditions
+
+`MLET`, `MLAT`, `MLFT`, `MESL`, `MLCT`, `MFSL` and the options-with-stock ones (`MULTI_LEG`). Two mechanisms, combined with union-find (if a trade is linked by either one, its whole group is merged):
 
 **A) Legs of a multi-leg order.** Trades on **different** contracts of the same underlying, with the **same Trade Condition** and at most **50 ms** apart (`TOL_MS`). A multi-leg order prints all its legs at the same instant and with the same mechanism code.
 
 **B) An order split within one contract.** Trades on the **same** contract, with the **same Trade Condition** and at most **120 s** (`VENTANA_S`) after the previous one.
 
-Consequence: **all the rows of an operation share the same Trade Condition**, because both mechanisms only join trades with the same condition.
+### Single-leg conditions
 
-Example: a call bought in three AUTO trades at 10:00:00, 10:01:00 and 10:02:30 is a single operation (each trade is less than 120 s after the previous one). Another AUTO trade on the same contract at 10:10:00 is a separate operation.
+All the others (`AUTO`, `ISOI`, `SLAN`…). Different contracts are never joined. Within each contract and Trade Condition:
+
+1. **Burst.** Trades on the same side (bought, sold or undetermined, see [section 2](#2-aggressiveness-and-side-of-each-trade)) with at most **1.0 s** (`VENTANA_RAFAGA_S`) between consecutive ones form a **chunk**. Only the trades on that side count as consecutive, so a trade on the other side in between does not break the burst.
+2. **Relevant chunk.** A chunk is relevant if its premium reaches the smaller of the underlying's threshold ([section 1](#1-premium-threshold-by-underlying-price)) and **10 %** (`FRACCION_ESTIMADO`) of the contract's `premium_estimado` in level 1. Without an estimate, the minimum is 10 % of the threshold. If the underlying has no price, every chunk is relevant.
+3. **Chaining.** By start time, a relevant chunk joins the operation in progress if it starts at most **120 s** (`VENTANA_S`) after that operation's last trade and its side is compatible: the same, or either of them undetermined. The **operation's side** is that of its first chunk with a side. A relevant chunk on the opposite side closes the operation and opens a new one.
+4. **A chunk that is not relevant** is an operation of its own and is never chained.
+
+Example, on an underlying at $30 (threshold $500,000) and a call with no estimated premium, so a chunk is relevant from $50,000:
+
+| Time | Trades | Chunk | Operation |
+|---|---|---|---|
+| 10:00:00.000 to 10:00:00.400 | 5 bought, $300,000 | relevant, bought | 1 (bought) |
+| 10:00:40 | 1 sold, $10,000 | not relevant | 2 |
+| 10:01:30 | 1 undetermined, $200,000 | relevant | 1 (less than 120 s after its last trade) |
+| 10:02:00 | 1 sold, $100,000 | relevant, opposite side | 3 (sold) |
+| 10:06:00 | 1 sold, $100,000 | relevant | 4 (more than 120 s after the last trade of operation 3) |
+
+Operation 1 has two chunks, $500,000 and the bought side.
 
 ### Fields the script computes per operation
 
@@ -57,7 +78,8 @@ Example: a call bought in three AUTO trades at 10:00:00, 10:01:00 and 10:02:30 i
   It is an indicative label, without each leg's side. For example, `vertical` also covers three legs of the same type and expiration. The classification rules (section 5) use the per-leg detail, not this label.
 - **Incomplete legs** (`patas_incompletas`): there is a multi-leg Trade Condition (`MLET`, `MLAT`, `MLFT`, `MESL`, `MLCT`, `MFSL`, or the options-with-stock ones) and only one leg was captured.
 - **With stock** (`stock_option`): an options-with-stock condition (`TLET`, `TLAT`, `TLCT`, `TLFT`, `TASL`, `TESL`, `TFSL`).
-- **Direction** (`direccion`): taken from the leg with the most premium. If it was bought, call = bull and put = bear; if sold, the other way round; in the dead zone, `indeterminado`.
+- **Direction** (`direccion`): taken from the leg with the most premium, or from the operation's side for single-leg conditions. If it was bought, call = bull and put = bear; if sold, the other way round; in the dead zone, `indeterminado`.
+- **Chunks** (single-leg conditions only; empty for multi-leg ones): the operation's side (`lado`: `compra`, `venta` or `indeterminado`), the number of chunks (`n_trozos`), the premium of the largest one (`premium_trozo_mayor`), and whether the largest chunk is undetermined and the side comes from a smaller one (`lado_de_trozo_menor`).
 - **Net price** (`precio_neto`):
   - Single-leg: size-weighted average price.
   - Multi-leg: sum of the average prices with a sign (+ if the leg was bought, − if it was sold). Only computed if every leg has a clear side.
@@ -74,10 +96,17 @@ YYYYMMDD-SYMBOL-HH:MM:SS.mmm-TC        e.g. 20261013-XYZ-11:00:00.100-MLET
 It is the date and millisecond time of the operation's **first trade**, its underlying and its Trade Condition.
 
 - The Trade Condition is needed because in the real data different groups start on the same contract and the same millisecond with different conditions (e.g. AUTO and ISOI).
-- With it, the ID is **unique within a capture by construction**: two groups with the same underlying, millisecond and condition would already have been merged by mechanism A or B.
+- Two operations of single-leg conditions can still start on the same millisecond, underlying and condition: a buy and a sell of the same contract, or two contracts. Then the one with the most premium keeps the ID and the others add the contract's expiration, strike and type, and the operation's side:
+
+  ```
+  20261013-XYZ-10:00:00.000-AUTO                      the one with the most premium
+  20261013-XYZ-10:00:00.000-AUTO-20261120-185C-venta  the others
+  ```
+
+  The suffix depends only on the operation's content, so the ID is **unique within a capture and stable** ([decision 0036](decisions/0036-grouping-rule-for-single-leg-conditions.md)). Operations of multi-leg conditions never collide: two of them with the same underlying, millisecond and condition would already have been merged by mechanism A.
 - The same operation can appear in two captures if the pipeline queried the same contract and date twice. It then has the same ID in both, and the dashboard keeps the most recent capture.
 
-See [decision 0007](decisions/0007-operation-id-format.md).
+See [decision 0007](decisions/0007-operation-id-format.md). When the grouping changed on 16/11/2026, the edits whose operation no longer exists became orphans: they are shown, never deleted.
 
 ## 5. Classifying operations
 
@@ -96,7 +125,9 @@ Implementation: [`src/tape_dashboard/rules/`](../src/tape_dashboard/rules/). Eac
 
 A leg is **bought** if its aggressiveness is > +0.25, **sold** if it is < −0.25, and **undetermined** in between, at the boundary or without data.
 
-Aggressiveness is computed in floating point, so a trade at a quarter of the half-spread comes out as 0.2499999… or as 0.2500000…3. There are 37 such legs in the real data. A 10⁻⁹ tolerance makes the boundary always undetermined, as the specification says ([decision 0017](decisions/0017-aggressiveness-boundary.md)).
+Aggressiveness is computed in floating point, so a trade at a quarter of the half-spread comes out as 0.2499999… or as 0.2500000…3. There are 37 such legs in the real data. A 10⁻⁹ tolerance makes the boundary always undetermined, as the specification says ([decision 0017](decisions/0017-aggressiveness-boundary.md)). The script uses the same boundary for its sides, its `direccion` and the net price.
+
+For an operation of **single-leg conditions**, the leg's side is the **operation's side** (that of its first chunk with a side, see [section 3](#single-leg-conditions)), not the average aggressiveness of all its trades. Multi-leg operations use each leg's aggressiveness.
 
 ### Rules, in order of precedence
 

@@ -1,7 +1,7 @@
 # 0006. Regression testing with a frozen copy of the script and synthetic data
 
 - **Date:** 2026-10-16
-- **Status:** accepted
+- **Status:** accepted, amended by [0036](0036-grouping-rule-for-single-leg-conditions.md)
 
 ## Context
 
@@ -26,3 +26,4 @@ The script's refactor must not change its output (specification). It needs somet
 
 - The dashboard always uses the real data; synthetic data only exists inside the tests.
 - If the script's output is changed on purpose, the test has to prove that this is the only change. For cancellations ([0015](0015-drop-cancellations.md)) this was done by transforming the oracle's input, without freezing a new version.
+- **Amended on 16/11/2026** ([0036](0036-grouping-rule-for-single-leg-conditions.md)): the grouping rule changes the output too much to transform the oracle's input. The script before it is frozen as a second copy, `nivel3_agrupar_20261021.py`, also protected by its hash. That copy must still match the 01/10 one without cancellations, which keeps the history proven, and the new script is compared with it by invariants.

@@ -83,9 +83,9 @@ flowchart LR
 
 1. `files` groups the files by capture date and reports any CSV it does not recognise. It also compares the script copy in the data folder with the canonical one.
 2. `schemas` defines each level's canonical schema and the known variants; `loading` renames columns, normalises values and reports files that do not fit ([data contract](data-contract.md)).
-3. `reconstruction` runs level 2 through the script's functions (`preparar_filas` → `agrupar` → `resumen`, `patas_de`, `id_operacion`, `pasa_umbral`) and keeps every operation, above the threshold or not.
+3. `reconstruction` runs level 2 through the script's functions (`preparar_filas` → `quitar_cancelaciones` → `agrupar` with the prices and estimated premiums of level 1 → `resumen`, `patas_de`, `ids_operaciones`, `pasa_umbral`) and keeps every operation, above the threshold or not.
 4. `dataset` gathers the captures and answers the interface's queries: operations in a range of capture dates without repeated IDs, and which capture is "today".
-5. `validation` compares each reconstruction with the stored level 3; `quality` computes the [data quality](data-quality.md) indicators.
+5. `validation` compares each reconstruction with the stored level 3, and reproduces the earlier versions of the script with their frozen copies in `tests/legacy/` to recognise files they produced; `quality` computes the [data quality](data-quality.md) indicators.
 
 Anything that does not fit becomes an `Issue` attached to its file: errors (the file or the day is not used), warnings and informational notes. Nothing is dropped silently.
 

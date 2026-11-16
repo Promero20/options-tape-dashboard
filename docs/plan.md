@@ -88,7 +88,10 @@ The SPY GEX panel and its input file were dropped: the dashboard does not captur
 
 **Done when:** the panel and its references are gone, the button shows only with a valid address and opens it in a new tab, and `.env` stays out of git while `.env.example` documents the variable. ✔
 
-After phase 7, at the user's request: configurable columns in the operations list, saved as a base layout, with new columns such as the contract volume ([0035](decisions/0035-configurable-columns.md)).
+After phase 7, at the user's request:
+
+- Configurable columns in the operations list, saved as a base layout, with new columns such as the contract volume ([0035](decisions/0035-configurable-columns.md)).
+- A new grouping rule for single-leg conditions in the level-3 script: bursts, relevant chunks and side, applied to the whole history ([0036](decisions/0036-grouping-rule-for-single-leg-conditions.md)).
 
 ## Phase 8
 

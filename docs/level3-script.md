@@ -25,11 +25,7 @@ The output is **byte-for-byte identical**, and so is the console message. The ch
 | Explicit `encoding='utf-8'` for reading and writing | On Windows the previous script failed when writing `→` (calendars and diagonals). Nothing changes on Linux |
 | Clear error if level 2 has no trades | It used to fail with an unhelpful `IndexError` |
 
-The guarantee comes from the tests in [`tests/test_no_regression.py`](../tests/test_no_regression.py):
-
-- With the real data of every day with level 2, the new script produces exactly the same CSV and console message as the frozen 01/10/2026 version (`tests/legacy/`). If the day has cancellations, it is compared with the frozen version run on the same level 2 without them (see below).
-- The same with a synthetic scenario written in every known schema variant.
-- For days without cancellations whose level 3 was produced by that version, it also matches the stored CSV.
+The guarantee came from the tests in [`tests/test_no_regression.py`](../tests/test_no_regression.py): with the real data of every day with level 2, and with a synthetic scenario written in every known schema variant, the script produced exactly the same CSV and console message as the frozen 01/10/2026 version (`tests/legacy/`). That check is still there, now for the frozen copy of 21/10/2026 (see below).
 
 ## Output change of 19/10/2026: cancellations
 
@@ -39,6 +35,21 @@ Before grouping, the script drops cancellation rows (`CANC`, `CNCL`, `CNCO`, `CN
 - the console adds a second line, for example `1 cancelaciones quitadas junto con el trade que anulan`.
 
 In the captures analysed it affects 02/10 and 07/10: each loses two operations that never went through.
+
+## Output change of 16/11/2026: grouping rule
+
+Trades of single-leg conditions are grouped by bursts, relevant chunks and side; the 50 ms cross only joins multi-leg conditions; and an aggressiveness of exactly ±0.25 is undetermined in `direccion` and in the net price too ([decision 0036](decisions/0036-grouping-rule-for-single-leg-conditions.md), rules in the [business rules](business-rules.md#3-grouping-trades-into-operations)).
+
+- **Command line and console**: unchanged. `main()` still returns `(rows, todas, ops, descartadas, cancelaciones)`.
+- **CSV**: four new columns at the end, `lado, n_trozos, premium_trozo_mayor_M, lado_de_trozo_menor` (variant N3-D in the [data contract](data-contract.md#level-3-operations)). A reader that looks up columns by name keeps working.
+- **Level 1**: the script now also reads `premium_estimado` per contract (`cargar_nivel1()`); `cargar_precios()` is kept.
+- **Module**: `agrupar(rows, precios, estimados)` takes the prices and estimates (without them every chunk is relevant), and `ids_operaciones(grupos)` gives each operation a unique ID.
+
+How it is tested, in [`tests/test_no_regression.py`](../tests/test_no_regression.py) and [`tests/test_grouping_rule.py`](../tests/test_grouping_rule.py):
+
+- The previous script is frozen as `tests/legacy/nivel3_agrupar_20261021.py`. It must produce, byte for byte, what the 01/10 copy produces on the same level 2 without cancellations, so the history of the output stays proven.
+- The new script is compared with it by invariants on the real data and on the synthetic scenario: operations of multi-leg conditions keep the same trades and summary (only `direccion` and the net price may change at the ±0.25 boundary), every new single-leg operation is contained in an old one, no trade or premium is lost, and the console and the CSV keep their format.
+- The rule itself is tested on invented trades: a sweep of trades a few milliseconds apart stays one operation with one chunk, a single block trade keeps its operation and ID, and so on.
 
 ## How to deploy a new version
 
@@ -66,4 +77,5 @@ The dashboard never writes to the data folder, so deployment is manual:
 | 01/10/2026 | `6420fc62206f331be4501939e1b5dfaa4c7f7a5bf02ccda83e881e744c4f662c` | 01/10/2026 | Reference version. Its frozen copy in `tests/legacy/` has one generalised comment (see [decision 0006](decisions/0006-frozen-oracle-and-synthetic-data.md)), so its hash differs; the behaviour is identical |
 | Phase 0 | — | no | Refactor without output changes; no need to deploy it |
 | 19/10/2026 | `59962f5b960389732e1a0b2425b04e74a94f5b0ae3adafc0fbacbedadff247a2` | 19/10/2026 | Drops cancellations and the trades they cancel |
-| 21/10/2026 | `aea159f50faf93ed6b7fef345d884e6ac8e38247275287c3ebc542b64d8c571a` | 23/10/2026 | Generalises a comment about where the column names come from; same output. Hash checked on both copies after deployment |
+| 21/10/2026 | `aea159f50faf93ed6b7fef345d884e6ac8e38247275287c3ebc542b64d8c571a` | 23/10/2026 | Generalises a comment about where the column names come from; same output. Hash checked on both copies after deployment. Frozen in `tests/legacy/` |
+| 16/11/2026 | `326dfe8b5e3d50d11f53a236905bdfbff4805ceee96e98b826adef194caa5984` | pending | Grouping rule for single-leg conditions and the ±0.25 boundary in `direccion` and the net price ([decision 0036](decisions/0036-grouping-rule-for-single-leg-conditions.md)); four new columns |
