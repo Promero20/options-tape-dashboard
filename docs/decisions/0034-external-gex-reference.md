@@ -1,7 +1,7 @@
 # 0034. The GEX panel is replaced by a link to an external GEX reference
 
 - **Date:** 2026-11-12
-- **Status:** accepted (amends the specification)
+- **Status:** accepted (amends the specification), amended by [0038](0038-operations-tab-layouts.md)
 
 ## Context
 
@@ -10,7 +10,7 @@ The specification reserved the bottom right of tab 1 for a SPY GEX panel, fed by
 ## Decision
 
 - **The dashboard does not capture, parse or store any GEX data.** The panel, the input file and its place in the data contract are dropped.
-- **Tab 1 shows a "GEX SPX" button where the panel was.** It opens an external GEX reference page in a new browser tab (`target="_blank"`, `rel="noopener noreferrer"`).
+- **Tab 1 shows a "GEX SPX" button where the panel was** (since [0038](0038-operations-tab-layouts.md), in the header of the charts panel). It opens an external GEX reference page in a new browser tab (`target="_blank"`, `rel="noopener noreferrer"`).
 - **The address comes from the `GEX_REFERENCE_URL_SPX` environment variable.** `python -m tape_dashboard` also loads it from a `.env` file at the repository root, with python-dotenv; variables already set in the environment win. The template is `.env.example`, with the variable empty. `.env` stays out of git.
 - **Without the variable, or with it empty, there is no button** and everything else works the same.
 - **Only `http` and `https` addresses are used.** Any other value hides the button and adds a warning to the banner, so that a typo does not fail silently and a `javascript:` address is never placed in a link.

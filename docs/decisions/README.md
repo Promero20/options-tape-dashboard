@@ -37,9 +37,11 @@ One short entry per relevant decision: what was decided, why, and which alternat
 | [0031](0031-positions-model-and-pnl.md) | Positions: their own file, closes per leg, and P&L on the net premium | accepted, amended by 0033 |
 | [0032](0032-positions-tab.md) | Positions tab: link to the operation, form limits, and a chart that follows the filters | accepted, amended by 0033 |
 | [0033](0033-positions-links-commissions-and-closes.md) | Positions: several linked operations, automatic commissions, and closes edited from Edit | accepted |
-| [0034](0034-external-gex-reference.md) | The GEX panel is replaced by a link to an external GEX reference | accepted |
+| [0034](0034-external-gex-reference.md) | The GEX panel is replaced by a link to an external GEX reference | accepted, amended by 0038 |
 | [0035](0035-configurable-columns.md) | Configurable columns in the operations list, saved in the user-data folder | accepted |
 | [0036](0036-grouping-rule-for-single-leg-conditions.md) | Single-leg conditions are grouped by bursts, relevant chunks and side | accepted |
+| [0037](0037-premium-shown-in-the-list.md) | The list shows the premium of the charts | accepted |
+| [0038](0038-operations-tab-layouts.md) | Two layouts for the operations tab, switched with an animated transition | accepted |
 
 ## Pending decisions
 

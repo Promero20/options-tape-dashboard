@@ -205,6 +205,7 @@ JSON file `preferences.json` in the user-data folder, outside git ([decision 003
 | Key | Content |
 |---|---|
 | `operations_columns` | Saved layout of the operations list, in display order: a list of `{"colId": column, "hide": true/false, "width": pixels}`. Unknown columns are ignored and columns it does not list are shown hidden |
+| `operations_view` | Layout of the operations tab chosen last: `vertical` (the default) or `horizontal` ([decision 0038](decisions/0038-operations-tab-layouts.md)). Any other value opens the vertical one |
 
 ## Configuration
 

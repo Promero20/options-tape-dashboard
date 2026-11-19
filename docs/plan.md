@@ -92,6 +92,7 @@ After phase 7, at the user's request:
 
 - Configurable columns in the operations list, saved as a base layout, with new columns such as the contract volume ([0035](decisions/0035-configurable-columns.md)).
 - A new grouping rule for single-leg conditions in the level-3 script: bursts, relevant chunks and side, applied to the whole history ([0036](decisions/0036-grouping-rule-for-single-leg-conditions.md)).
+- The list shows the premium of the charts, net for spreads ([0037](decisions/0037-premium-shown-in-the-list.md)), and the operations tab has a second, horizontal layout with an animated switch ([0038](decisions/0038-operations-tab-layouts.md)).
 
 ## Phase 8
 

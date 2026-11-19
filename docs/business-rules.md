@@ -151,6 +151,8 @@ If a vertical has the same premium on both legs (neither debit nor credit), it g
 
 **Direction.** On the net chart, the sign gives it. On the walls chart, a sold put or a bull put spread is bullish (support) and a sold call or a bear call spread is bearish (resistance). Undetermined ones are `undetermined`; discarded and pending ones have none. **This is the direction the list shows and edits**; the script's `direccion` column (taken only from the leg with the most premium) is kept as secondary data ([decision 0021](decisions/0021-direction-shown-in-the-list.md)).
 
+**Premium in the list.** The list shows the premium of the table above, without its sign (the direction gives it), so it matches the charts: a bull call spread shows bought − sold. The gross premium, the sum of every leg, is an optional column; the threshold applies to it ([decision 0037](decisions/0037-premium-shown-in-the-list.md)).
+
 ### Examples
 
 - **The specification's bear put**: 100 put bought for 10M and 90 put sold for 5M. Debit vertical: net, strike 100, −5M (bearish).
