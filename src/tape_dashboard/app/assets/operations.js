@@ -35,9 +35,11 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 });
 
 /*
- * In the horizontal layout the tab fills the window below its top edge, so
- * the page does not scroll. The top edge moves when the warnings banner opens
- * or the header wraps, so it is measured again whenever the page changes size.
+ * The height of the window below the tab's top edge, which the list (and in
+ * the horizontal layout the whole tab) fills so the page does not scroll; the
+ * minimum sizes of the panels are in style.css. The top edge moves when the
+ * warnings open or the header wraps, so it is measured again whenever the page
+ * changes size.
  */
 function fitOperationsTab() {
   var tab = document.getElementById("ops-tab");
@@ -45,7 +47,7 @@ function fitOperationsTab() {
     return;
   }
   var top = tab.getBoundingClientRect().top + window.scrollY;
-  tab.style.setProperty("--ops-height", Math.max(520, window.innerHeight - top - 12) + "px");
+  tab.style.setProperty("--ops-height", Math.max(0, window.innerHeight - top - 12) + "px");
 }
 
 window.addEventListener("resize", fitOperationsTab);

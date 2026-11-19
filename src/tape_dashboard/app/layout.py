@@ -28,12 +28,13 @@ def notices_banner(state):
 
 def page(state):
     return html.Div(className="page", children=[
+        # one line: the warnings are a badge at the end that opens below it
         html.Header(className="header", children=[
             html.H1("Tape Reading Dashboard"),
             html.Span(header_info(state), id=ids.HEADER_INFO, className="muted"),
             html.Button("Reload data", id=ids.RELOAD, className="btn"),
+            html.Div(notices_banner(state), id=ids.NOTICES, className="notices-slot"),
         ]),
-        html.Div(notices_banner(state), id=ids.NOTICES),
         dcc.Tabs(id=ids.TABS, className="tabs", value=TABS[0].__name__.rsplit(".", 1)[-1], children=[
             dcc.Tab(label=tab.TITLE, value=tab.__name__.rsplit(".", 1)[-1], children=tab.layout(state))
             for tab in TABS

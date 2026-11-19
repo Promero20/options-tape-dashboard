@@ -107,3 +107,31 @@ def test_the_switch_runs_in_the_browser_with_a_view_transition(app):
     assert script.status_code == 200
     text = script.get_data(as_text=True)
     assert "toggle_view" in text and "startViewTransition" in text and "prefers-reduced-motion" in text
+
+
+# --- compact layout and minimum sizes -----------------------------------------------------------
+
+def test_the_warnings_are_a_badge_in_the_header(app):
+    from tape_dashboard.app import ids
+    from tape_dashboard.app.layout import page
+
+    header = page(app.tape_state).children[0]
+    assert header.className == "header" and _find(header, ids.NOTICES).className == "notices-slot"
+
+
+def test_the_list_is_dense_and_the_charts_have_one_toolbar(app):
+    tab = _find(view.layout(app.tape_state), view.TAB)
+    options = _find(tab, view.GRID).dashGridOptions
+    assert (options["rowHeight"], options["headerHeight"], options["floatingFiltersHeight"]) == (30, 32, 32)
+    toolbar = _find(tab, class_name="charts").children[0]
+    assert toolbar.className == "toolbar charts-toolbar"
+    assert all(_find(toolbar, i) is not None for i in (view.SYMBOL, view.CHART_RANGE, view.CHART_DATES))
+
+
+def test_the_panels_have_minimum_sizes_and_the_page_scrolls_below_them():
+    from tape_dashboard.app import ASSETS
+
+    css = (ASSETS / "style.css").read_text(encoding="utf-8")
+    assert "--list-min: 330px; --charts-min: 430px;" in css
+    assert "grid-template-rows: minmax(var(--list-min), 1fr) minmax(var(--charts-min), 1fr);" in css
+    assert "height: max(var(--ops-height" in css and "calc(var(--list-min) + var(--charts-min) + 12px))" in css

@@ -44,6 +44,7 @@ NO_SYMBOL = "Select an operation in the list or pick an underlying."
 GRAPH_CONFIG = {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d"]}
 
 HIDDEN, SHOWN, SHOWN_INLINE = {"display": "none"}, {"display": "block"}, {"display": "inline-block"}
+ROW_HEIGHT, HEADER_HEIGHT = 30, 32          # compact list: more rows on screen (decision 0038)
 
 
 def legs_table(rows):
@@ -80,13 +81,13 @@ def tab_class(view):
 def charts_panel(gex_reference_url=None):
     """Net directional and walls charts of one underlying, with their own date range (decision 0029)."""
     return html.Div(className="panel charts", children=[
-        html.Div(className="toolbar", children=[
+        html.Div(className="toolbar charts-toolbar", children=[
             html.H4("Underlying charts"),
             dcc.Dropdown(id=SYMBOL, options=[], placeholder="Underlying", clearable=False,
                          className="symbol-picker"),
+            *range_selector(CHART_RANGE, CHART_DATES, MONTH),
             *gex_reference_link(gex_reference_url),
         ]),
-        html.Div(className="toolbar", children=range_selector(CHART_RANGE, CHART_DATES, MONTH)),
         html.Div(id=CHART_NOTE, className="range-note"),
         # the graphs follow the size of their box, which changes with the layout
         dcc.Tabs(value="net", className="inner-tabs", parent_className="inner-tabs-parent",
@@ -200,6 +201,7 @@ def layout(state):
                 rowClassRules=ROW_CLASS_RULES,
                 columnSize=None if saved else "autoSize",       # a saved layout keeps its own widths
                 dashGridOptions={
+                    "rowHeight": ROW_HEIGHT, "headerHeight": HEADER_HEIGHT, "floatingFiltersHeight": HEADER_HEIGHT,
                     "rowSelection": {"mode": "singleRow", "checkboxes": False, "enableClickSelection": True},
                     "tooltipShowDelay": 300,
                     "enableCellTextSelection": True,

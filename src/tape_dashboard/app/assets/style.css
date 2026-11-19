@@ -24,7 +24,7 @@ body {
 
 .page { padding: 12px 16px; }
 
-.header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
 .header h1 { font-size: 20px; margin: 0; }
 .muted { color: var(--muted); }
 
@@ -35,7 +35,11 @@ body {
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-.notices { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; margin-bottom: 8px; }
+/* the warnings are a badge at the end of the header; open, they take a line of their own below it */
+.notices-slot { margin-left: auto; }
+.notices-slot:empty { display: none; }
+.notices-slot:has(.notices[open]) { flex-basis: 100%; margin-left: 0; }
+.notices { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; }
 .notices summary { cursor: pointer; font-weight: 600; color: var(--warning); }
 .notices ul { margin: 6px 0 2px; padding-left: 20px; }
 .notice-error { color: var(--error); }
@@ -47,52 +51,68 @@ body {
 .detail-panel { position: relative; }
 .detail-panel h4 { padding-right: 190px; }
 
-/* Operations tab: two layouts (decision 0038). The panels glide between them in a view transition. */
-.ops-tab { display: grid; gap: 12px; margin-top: 10px; }
+/* compact tab bars */
+.tabs .tab, .inner-tabs .tab { padding: 6px 12px !important; height: auto !important; }
+
+/*
+ * Operations tab: two layouts (decision 0038). The panels glide between them in a view transition.
+ * --ops-height, set by assets/operations.js, is the height of the window below the tab's top edge.
+ * The list fills it in both layouts. The minimums keep about six rows in the list and a chart of
+ * about 280 px; on a window too short for them the page scrolls instead of squashing the panels.
+ */
+.ops-tab { --list-min: 330px; --charts-min: 430px; display: grid; gap: 12px; margin-top: 8px; }
 .ops-tab.view-vertical {
   grid-template-columns: minmax(0, 1.5fr) minmax(380px, 1fr); grid-template-rows: auto 1fr;
   grid-template-areas: "list charts" "list detail";
 }
 .ops-tab.view-horizontal {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: "list list" "charts detail"; height: var(--ops-height, calc(100vh - 190px));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(var(--list-min), 1fr) minmax(var(--charts-min), 1fr);
+  grid-template-areas: "list list" "charts detail";
+  height: max(var(--ops-height, calc(100vh - 100px)), calc(var(--list-min) + var(--charts-min) + 12px));
 }
-.ops-tab > .ops-list { grid-area: list; min-width: 0; view-transition-name: ops-list; }
+.ops-tab > .ops-list {
+  grid-area: list; min-width: 0; min-height: 0; view-transition-name: ops-list;
+  display: flex; flex-direction: column; box-sizing: border-box;
+}
 .ops-tab > .charts { grid-area: charts; min-width: 0; view-transition-name: ops-charts; }
 .ops-tab > .detail-panel { grid-area: detail; min-width: 0; view-transition-name: ops-detail; }
 .ops-tab.view-vertical > .ops-list, .ops-tab.view-vertical > .charts, .ops-tab.view-vertical > .detail-panel {
   align-self: start;
 }
+.ops-tab.view-vertical > .ops-list { height: max(var(--ops-height, calc(100vh - 100px)), var(--list-min)); }
+.ops-list .ops-grid { flex: 1 1 0; height: auto; min-height: 0; }
 /* the graphs are responsive: their box sets their size (Dash puts height: 100% on it) */
 .ops-graph { height: 380px !important; }
-.view-horizontal > .ops-list, .view-horizontal > .charts { display: flex; flex-direction: column; min-height: 0; }
+.view-horizontal > .charts { display: flex; flex-direction: column; min-height: 0; }
 .view-horizontal > .detail-panel { overflow: auto; min-height: 0; }
-.view-horizontal .ops-grid { flex: 1; height: auto; min-height: 0; }
 .view-horizontal .inner-tabs-parent, .view-horizontal .inner-tabs-content {
   display: flex; flex-direction: column; flex: 1; min-height: 0;
 }
-.view-horizontal .ops-graph { flex: 1; height: auto !important; min-height: 120px; }
-.view-horizontal .range-note:empty { min-height: 0; margin: 0; }
-.view-horizontal .inner-tabs .tab { padding: 6px 12px !important; height: auto !important; }
-.view-horizontal .axis { margin-top: 4px; }
+.view-horizontal .ops-graph { flex: 1; height: auto !important; min-height: 0; }
+.view-horizontal .charts h4 { display: none; }
 ::view-transition-group(ops-list), ::view-transition-group(ops-charts), ::view-transition-group(ops-detail) {
   animation-duration: 0.45s; animation-timing-function: ease-in-out;
 }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.45s; }
-.toolbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+.toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
 .choices label { margin-right: 12px; cursor: pointer; }
 .choices input { margin-right: 4px; }
 .toolbar-end { margin-left: auto; display: flex; gap: 8px; }
+/* the date range only counts with Custom: until then it takes no room */
+.toolbar > .dash-datepicker { flex: 0 1 auto; }
+.toolbar > .dash-datepicker:has(.dash-datepicker-input-wrapper-disabled) { display: none; }
 .column-group label { font-weight: 600; display: block; margin: 10px 0 4px; }
 .column-choices label { display: inline-block; min-width: 160px; font-weight: normal; margin: 2px 0; }
-.range-note { color: var(--warning); min-height: 18px; margin-bottom: 4px; }
+.range-note { color: var(--warning); margin-bottom: 4px; }
+.range-note:empty { display: none; }
 .summary { color: var(--muted); margin-top: 6px; }
-.ops-grid { height: calc(100vh - 290px); min-height: 360px; }
+.ops-list .summary, .charts .summary { margin-top: 4px; font-size: 13px; }
 .charts .toolbar h4 { margin: 0; }
 .symbol-picker { min-width: 180px; }
 .expiration-picker { min-width: 240px; flex: 1; }
-.inner-tabs { margin-top: 4px; }
-.axis { margin: 8px 0 0; }
+.inner-tabs { margin-top: 2px; }
+.axis { margin: 6px 0 0; }
 
 .row-undetermined { background-color: var(--undetermined-row) !important; }
 .row-edited { font-style: italic; }
@@ -146,6 +166,7 @@ table.legs th, table.legs td { border-bottom: 1px solid var(--border); padding: 
     grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "list" "charts" "detail";
     height: auto;
   }
-  .view-horizontal .ops-grid { flex: none; height: calc(100vh - 290px); min-height: 360px; }
+  .view-horizontal > .ops-list { height: max(var(--ops-height, calc(100vh - 100px)), var(--list-min)); }
   .view-horizontal .ops-graph { flex: none; height: 380px !important; }
+  .view-horizontal > .detail-panel { overflow: visible; }
 }
