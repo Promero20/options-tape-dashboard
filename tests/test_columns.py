@@ -1,6 +1,7 @@
 """Columns of the operations list: catalogue, saved layout, preferences file and the pop-up (decision 0035)."""
 
 import json
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -95,6 +96,24 @@ def test_size_trades_duration_and_volume(dataset):
     assert single["duration_s"] == 150.0
     assert (single["contract_volume"], single["volume_share"]) == (1000, 140.0)    # invented level-1 volume
     assert (vertical["legs"], vertical["size"], vertical["contract_volume"]) == (2, 4500, 2000)  # added up
+
+
+def test_the_premium_is_the_one_of_the_charts_and_the_gross_one_is_optional(dataset):
+    rows = rows_by_id(dataset)
+    # debit vertical: bought calls for 1.5M (two trades) and sold calls for 0.4M
+    assert (rows[VERTICAL]["premium_m"], rows[VERTICAL]["gross_premium_m"]) == (1.1, 1.9)
+    assert rows[SINGLE]["premium_m"] == rows[SINGLE]["gross_premium_m"]
+    assert "gross_premium_m" in hidden(COLUMN_DEFS)
+    for item in apply_edits(dataset.captures[D13].operations, Edits.empty()):
+        if item.classification.destination != "pending":
+            assert operation_rows([item])[0]["premium_m"] == round(abs(item.classification.premium) / 1e6, 3)
+
+
+def test_a_bearish_premium_is_listed_without_its_sign(dataset):
+    (item,) = [i for i in apply_edits(dataset.captures[D13].operations, Edits.empty()) if i.operation.id == VERTICAL]
+    bearish = replace(item, classification=replace(item.classification, direction="bear", premium=-1_100_000))
+    (row,) = operation_rows([bearish])
+    assert (row["premium_m"], row["direction"]) == (1.1, "bear")
 
 
 def test_chunks_of_a_single_leg_operation_and_none_for_multi_leg(dataset):

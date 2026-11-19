@@ -51,7 +51,8 @@ def operation_row(item, volume_of=None):
         "structure": c.structure,
         "strike": s["strike"],
         "expiration": s["fecha_expiracion"],
-        "premium_m": round(op.premium / 1_000_000, 3),
+        "premium_m": round(abs(c.premium) / 1_000_000, 3),       # the classification's, as in the charts
+        "gross_premium_m": round(op.premium / 1_000_000, 3),
         "net_price": _blank_to_none(c.net_price),
         "aggressiveness": _blank_to_none(s["agresividad_pond"]),
         "direction": c.direction or "",
@@ -130,7 +131,12 @@ COLUMN_DEFS = [
     {"field": "strike", "headerName": "Strike"},
     {"field": "expiration", "headerName": "Expiration", "minWidth": 120},
     {"field": "premium_m", "headerName": "Premium (M)", "filter": "agNumberColumnFilter",
-     "type": "rightAligned", "valueFormatter": number_format(3), "sort": "desc"},
+     "type": "rightAligned", "valueFormatter": number_format(3), "sort": "desc",
+     "headerTooltip": "As in the charts: net (bought − sold, or sold − bought for credit spreads) for verticals and "
+                      "diagonals, the total for single-legs, gross for the rest"},
+    {"field": "gross_premium_m", "headerName": "Gross premium (M)", "filter": "agNumberColumnFilter",
+     "type": "rightAligned", "valueFormatter": number_format(3), "hide": True,
+     "headerTooltip": "Sum of the premium of every leg: the one the threshold applies to"},
     {"field": "net_price", "headerName": "Net price", "filter": "agNumberColumnFilter",
      "type": "rightAligned", "valueFormatter": number_format(2)},
     {"field": "aggressiveness", "headerName": "Aggr.", "filter": "agNumberColumnFilter",
@@ -165,7 +171,7 @@ ALWAYS_SHOWN = "symbol"
 # how the columns pop-up groups them; every column but Symbol is in one group
 COLUMN_GROUPS = (
     ("Operation", ("direction", "flags", "capture", "trade_date", "structure", "strike", "expiration", "premium_m",
-                   "net_price", "aggressiveness", "destination", "wall", "conditions", "start", "end", "legs",
+                   "gross_premium_m", "net_price", "aggressiveness", "destination", "wall", "conditions", "start", "end", "legs",
                    "trades", "size", "duration_s", "chunks", "largest_chunk_m")),
     ("Volume", ("contract_volume", "volume_share")),
     ("Technical", ("id", "script_direction")),
