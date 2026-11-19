@@ -43,16 +43,46 @@ body {
 
 .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
 .panel h4 { margin: 0 0 8px; font-size: 15px; }
-.gex-reference { align-self: flex-start; text-decoration: none; }
+.gex-reference { margin-left: auto; text-decoration: none; }
 .detail-panel { position: relative; }
 .detail-panel h4 { padding-right: 190px; }
 
-.ops-tab { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(380px, 1fr); gap: 12px; margin-top: 10px; }
-.ops-side { display: flex; flex-direction: column; gap: 12px; }
+/* Operations tab: two layouts (decision 0038). The panels glide between them in a view transition. */
+.ops-tab { display: grid; gap: 12px; margin-top: 10px; }
+.ops-tab.view-vertical {
+  grid-template-columns: minmax(0, 1.5fr) minmax(380px, 1fr); grid-template-rows: auto 1fr;
+  grid-template-areas: "list charts" "list detail";
+}
+.ops-tab.view-horizontal {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "list list" "charts detail"; height: var(--ops-height, calc(100vh - 190px));
+}
+.ops-tab > .ops-list { grid-area: list; min-width: 0; view-transition-name: ops-list; }
+.ops-tab > .charts { grid-area: charts; min-width: 0; view-transition-name: ops-charts; }
+.ops-tab > .detail-panel { grid-area: detail; min-width: 0; view-transition-name: ops-detail; }
+.ops-tab.view-vertical > .ops-list, .ops-tab.view-vertical > .charts, .ops-tab.view-vertical > .detail-panel {
+  align-self: start;
+}
+/* the graphs are responsive: their box sets their size (Dash puts height: 100% on it) */
+.ops-graph { height: 380px !important; }
+.view-horizontal > .ops-list, .view-horizontal > .charts { display: flex; flex-direction: column; min-height: 0; }
+.view-horizontal > .detail-panel { overflow: auto; min-height: 0; }
+.view-horizontal .ops-grid { flex: 1; height: auto; min-height: 0; }
+.view-horizontal .inner-tabs-parent, .view-horizontal .inner-tabs-content {
+  display: flex; flex-direction: column; flex: 1; min-height: 0;
+}
+.view-horizontal .ops-graph { flex: 1; height: auto !important; min-height: 120px; }
+.view-horizontal .range-note:empty { min-height: 0; margin: 0; }
+.view-horizontal .inner-tabs .tab { padding: 6px 12px !important; height: auto !important; }
+.view-horizontal .axis { margin-top: 4px; }
+::view-transition-group(ops-list), ::view-transition-group(ops-charts), ::view-transition-group(ops-detail) {
+  animation-duration: 0.45s; animation-timing-function: ease-in-out;
+}
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.45s; }
 .toolbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
 .choices label { margin-right: 12px; cursor: pointer; }
 .choices input { margin-right: 4px; }
-.columns-button { margin-left: auto; }
+.toolbar-end { margin-left: auto; display: flex; gap: 8px; }
 .column-group label { font-weight: 600; display: block; margin: 10px 0 4px; }
 .column-choices label { display: inline-block; min-width: 160px; font-weight: normal; margin: 2px 0; }
 .range-note { color: var(--warning); min-height: 18px; margin-bottom: 4px; }
@@ -112,5 +142,10 @@ table.legs th, table.legs td { border-bottom: 1px solid var(--border); padding: 
 .pos-close-row input { width: 100%; box-sizing: border-box; padding: 5px 6px; }
 
 @media (max-width: 900px) {
-  .ops-tab { grid-template-columns: 1fr; }
+  .ops-tab.view-vertical, .ops-tab.view-horizontal {
+    grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "list" "charts" "detail";
+    height: auto;
+  }
+  .view-horizontal .ops-grid { flex: none; height: calc(100vh - 290px); min-height: 360px; }
+  .view-horizontal .ops-graph { flex: none; height: 380px !important; }
 }

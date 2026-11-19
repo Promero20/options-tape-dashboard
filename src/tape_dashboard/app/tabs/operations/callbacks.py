@@ -4,7 +4,7 @@ controller function that takes the application state and plain values, so
 the controllers can be tested without a browser.
 """
 
-from dash import Input, Output, State, ctx, html, no_update
+from dash import ClientsideFunction, Input, Output, State, ctx, html, no_update
 
 from ....edits.apply import classified_operations
 from ....rules.classification import NET
@@ -233,7 +233,22 @@ def columns_action(state, trigger, groups, column_state):
 
 # --- wiring -------------------------------------------------------------------
 
+def save_view(state, view_name):
+    """Remembers the layout of the tab chosen last (decision 0038)."""
+    state.preferences.save_operations_view(view_name)
+
+
 def register(app, state):
+    # the switch is animated in the browser; the server only remembers it
+    app.clientside_callback(ClientsideFunction(namespace="operations", function_name="toggle_view"),
+                            Output(view.VIEW, "data"), Output(view.TAB, "className"),
+                            Input(view.VIEW_BUTTON, "n_clicks"), State(view.VIEW, "data"),
+                            prevent_initial_call=True)
+
+    @app.callback(Input(view.VIEW, "data"), prevent_initial_call=True)
+    def remember_view(view_name):
+        save_view(state, view_name)
+
     @app.callback(Output(view.DATES, "disabled"), Input(view.RANGE, "value"))
     def toggle_dates(preset):
         return preset != CUSTOM
@@ -289,4 +304,5 @@ def register(app, state):
         return leg_feedback(state, editing_data, (option_type, strike, exp_date, price, size), strategy)
 
     return {"toggle_dates": toggle_dates, "handle_columns": handle_columns, "refresh_grid": refresh_grid,
-            "show_detail": show_detail, "handle_modal": handle_modal, "refresh_leg_feedback": refresh_leg_feedback}
+            "show_detail": show_detail, "handle_modal": handle_modal, "refresh_leg_feedback": refresh_leg_feedback,
+            "remember_view": remember_view}

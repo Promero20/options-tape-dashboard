@@ -1,6 +1,7 @@
 """
 The user's interface preferences, in preferences.json in the user-data folder
-(decision 0035). For now, the saved layout of the operations list.
+(decision 0035): the saved layout of the operations list, and the layout of
+the operations tab last chosen (decision 0038).
 
 The file is written atomically (a temporary file, then a replace). If it
 cannot be read, factory settings are used, a warning says so, and the file is
@@ -14,6 +15,9 @@ from pathlib import Path
 
 FILE_NAME = "preferences.json"
 OPERATIONS_COLUMNS = "operations_columns"
+OPERATIONS_VIEW = "operations_view"
+VERTICAL, HORIZONTAL = "vertical", "horizontal"     # list beside the charts, or list on top
+VIEWS = (VERTICAL, HORIZONTAL)
 
 
 class Preferences:
@@ -47,10 +51,23 @@ class Preferences:
         return layout if _is_layout(layout) and layout else None
 
     def save_operations_columns(self, layout):
+        self._save(OPERATIONS_COLUMNS, layout)
+
+    def operations_view(self):
+        """The layout of the operations tab last chosen; the vertical one if there is none or it is unknown."""
+        view = self._read()[0].get(OPERATIONS_VIEW)
+        return view if view in VIEWS else VERTICAL
+
+    def save_operations_view(self, view):
+        if view not in VIEWS:
+            raise ValueError(f"unknown layout of the operations tab: {view!r}")
+        self._save(OPERATIONS_VIEW, view)
+
+    def _save(self, key, value):
         data, problem = self._read()
         if problem and not data:            # unreadable: keep it before writing a new one
             shutil.copy2(self.path, self.path.with_name(self.path.name + ".unreadable"))
-        self._write({**data, OPERATIONS_COLUMNS: layout})
+        self._write({**data, key: value})
 
     def _write(self, data):
         self.path.parent.mkdir(parents=True, exist_ok=True)

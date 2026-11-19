@@ -1,4 +1,10 @@
-"""Layout of the operations tab: the list on the left; charts and the selected operation on the right."""
+"""
+Layout of the operations tab: the list, the underlying charts and the selected
+operation. Two layouts (decision 0038): vertical, with the list on the left and
+the charts and the selected operation on the right; horizontal, with the list
+across the top half and the charts and the selected operation side by side
+below. The switch is animated in the browser (assets/operations.js).
+"""
 
 import dash_ag_grid as dag
 from dash import dcc, html
@@ -7,6 +13,7 @@ from ....charts.aggregate import EXPIRATION, STRIKE
 from ....charts.figures import empty_figure
 from ....config import web_url
 from ...leg_form import LegFormIds, leg_fields, preview_area
+from ...preferences import VERTICAL
 from .ranges import MONTH, PRESETS, TODAY
 from .rows import COLUMN_GROUPS, ROW_CLASS_RULES, column_defs, column_label
 
@@ -18,6 +25,7 @@ COLUMNS_RESTORE, COLUMNS_FACTORY, COLUMNS_CLOSE = "ops-columns-restore", "ops-co
 COLUMN_GROUP_IDS = tuple(f"ops-columns-{name.lower()}" for name, _ in COLUMN_GROUPS)
 DETAIL, EDIT, ACTIONS, NEW_POSITION = "ops-detail", "ops-edit", "ops-actions", "ops-new-position"
 GEX_REFERENCE = "ops-gex-reference"
+TAB, VIEW, VIEW_BUTTON = "ops-tab", "ops-view", "ops-view-button"
 MODAL, MODAL_TITLE, MODAL_INFO, MODAL_LEGS = "ops-modal", "ops-modal-title", "ops-modal-info", "ops-modal-legs"
 DIRECTION_BOX, DIRECTION_INPUT = "ops-direction-box", "ops-direction"
 STRATEGY_BOX, STRATEGY_INPUT = "ops-strategy-box", "ops-strategy"
@@ -65,22 +73,30 @@ def range_selector(radio_id, dates_id, value):
     ]
 
 
-def charts_panel():
+def tab_class(view):
+    return f"ops-tab view-{view}"
+
+
+def charts_panel(gex_reference_url=None):
     """Net directional and walls charts of one underlying, with their own date range (decision 0029)."""
     return html.Div(className="panel charts", children=[
         html.Div(className="toolbar", children=[
             html.H4("Underlying charts"),
             dcc.Dropdown(id=SYMBOL, options=[], placeholder="Underlying", clearable=False,
                          className="symbol-picker"),
+            *gex_reference_link(gex_reference_url),
         ]),
         html.Div(className="toolbar", children=range_selector(CHART_RANGE, CHART_DATES, MONTH)),
         html.Div(id=CHART_NOTE, className="range-note"),
-        dcc.Tabs(value="net", className="inner-tabs", children=[
+        # the graphs follow the size of their box, which changes with the layout
+        dcc.Tabs(value="net", className="inner-tabs", parent_className="inner-tabs-parent",
+                 content_className="inner-tabs-content", children=[
             dcc.Tab(label="Net directional", value="net", children=[
                 dcc.RadioItems(id=AXIS, value=EXPIRATION, inline=True, className="choices axis",
                                options=[{"label": "By expiration", "value": EXPIRATION},
                                         {"label": "By strike", "value": STRIKE}]),
-                dcc.Graph(id=NET_GRAPH, figure=empty_figure(NO_SYMBOL), config=GRAPH_CONFIG),
+                dcc.Graph(id=NET_GRAPH, figure=empty_figure(NO_SYMBOL), config=GRAPH_CONFIG, responsive=True,
+                          className="ops-graph"),
                 html.Div(id=NET_TOTALS, className="summary"),
             ]),
             dcc.Tab(label="Walls", value="walls", children=[
@@ -90,7 +106,8 @@ def charts_panel():
                     dcc.Checklist(id=SHOW_ITM, options=[{"label": "Show ITM walls", "value": ITM}],
                                   value=[ITM], inline=True, className="choices"),
                 ]),
-                dcc.Graph(id=WALLS_GRAPH, figure=empty_figure(NO_SYMBOL), config=GRAPH_CONFIG),
+                dcc.Graph(id=WALLS_GRAPH, figure=empty_figure(NO_SYMBOL), config=GRAPH_CONFIG, responsive=True,
+                          className="ops-graph"),
             ]),
         ]),
     ])
@@ -161,12 +178,17 @@ def columns_modal():
 
 def layout(state):
     saved = state.preferences.operations_columns()
-    return html.Div(className="ops-tab", children=[
+    current_view = state.preferences.operations_view()
+    return html.Div(id=TAB, className=tab_class(current_view), children=[
         html.Div(className="panel ops-list", children=[
             html.Div(className="toolbar", children=[
                 *range_selector(RANGE, DATES, TODAY),
-                html.Button("✎ Columns", id=COLUMNS_BUTTON, className="btn columns-button",
-                            title="Choose the columns of the list"),
+                html.Div(className="toolbar-end", children=[
+                    html.Button("⇅ Layout", id=VIEW_BUTTON, className="btn view-button",
+                                title="Switch between the list beside the charts and the list on top"),
+                    html.Button("✎ Columns", id=COLUMNS_BUTTON, className="btn columns-button",
+                                title="Choose the columns of the list"),
+                ]),
             ]),
             html.Div(id=RANGE_NOTE, className="range-note"),
             dag.AgGrid(
@@ -186,18 +208,16 @@ def layout(state):
             ),
             html.Div(id=SUMMARY, className="summary"),
         ]),
-        html.Div(className="ops-side", children=[
-            charts_panel(),
-            html.Div(className="panel detail-panel", children=[
-                html.Div(id=ACTIONS, className="detail-actions", style=HIDDEN, children=[
-                    html.Button("New position", id=NEW_POSITION, className="btn"),
-                    html.Button("Edit", id=EDIT, className="btn"),
-                ]),
-                html.Div(id=DETAIL, children=empty_detail()),
+        charts_panel(state.settings.gex_reference_url),
+        html.Div(className="panel detail-panel", children=[
+            html.Div(id=ACTIONS, className="detail-actions", style=HIDDEN, children=[
+                html.Button("New position", id=NEW_POSITION, className="btn"),
+                html.Button("Edit", id=EDIT, className="btn"),
             ]),
-            *gex_reference_link(state.settings.gex_reference_url),
+            html.Div(id=DETAIL, children=empty_detail()),
         ]),
         modal(),
         columns_modal(),
         dcc.Store(id=EDITING),
+        dcc.Store(id=VIEW, data=current_view),
     ])
